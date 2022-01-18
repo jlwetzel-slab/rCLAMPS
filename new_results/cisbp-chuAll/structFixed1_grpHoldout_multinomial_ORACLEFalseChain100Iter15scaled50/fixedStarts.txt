@@ -1,0 +1,5 @@
+bcd	1	0
+MSX2	1	0
+PITX1	1	0
+LMX1A	1	0
+HOXA10	3	1

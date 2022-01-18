@@ -1,0 +1,1 @@
+id1	seq1	id2	subPos	subVal	hammDist
