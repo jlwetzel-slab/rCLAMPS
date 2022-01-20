@@ -1,12 +1,7 @@
-# Outputs the aligned experimental PWMs according to the alignment produced 
-# by gibbsAlign_GLM.py .  Also outputs corresponding predicted PWMs from M_theta
-# based on only the core amino acid sequence residues of the corresponding 
-# protiens.  Then computed information regarding the agreement between PWMs 
-# predicted by M_theta to the experimetal PWMs, assuming that the alignment 
-# produced by gibbsAlign_GLM.py was correct.
-
-# For validating the alignment itself, we use the GLM_predict.py script 
-# to compare to the experimentally aligned orthologous fly PWMs from Noyes 08 (Cell).
+# Uses an alignemnt from gibbAlign_GLM.py to make predicitons in a 
+# holdout validation scenario wherein for each held out protein,
+# no other protein with and identical set base-contacting amino acid
+# residues can be included in the training set.
 
 import numpy as np
 import scipy

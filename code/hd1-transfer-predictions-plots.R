@@ -9,7 +9,7 @@ RES_DIR_RF <- '../results/cisbp-chu/structFixed1_grpHoldout_multinomial_ORACLEFa
 #RES_DIR <- '../results/cisbp-chu/structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15/transfer_test/mean/'
 MATCHTABS_FILE <- '../hd1-explore/0_splitChu2012-trainTest/0_matchTabs.txt'
 HD1_FILE <- '../hd1-explore/0_splitChu2012-trainTest/0_hd1cores_test_train.txt'
-TRAIN_FIT_TAB <- paste0('../results/cisbp-chu/structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15/pccTable_underS.txt')
+TRAIN_FIT_TAB <- paste0('../results/cisbp-chu/structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50/pccTable_underS.txt')
 BARRERA_TAB <- '../barrera2016_SuppTable_S6_combined.csv'
 RM_LOW_IC <- FALSE
 RM_LOW_OBS_PREDS <- FALSE
