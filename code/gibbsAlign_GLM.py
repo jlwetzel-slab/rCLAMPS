@@ -33,6 +33,18 @@ from scipy.stats import multinomial
 
 HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
 
+######### 
+# Under construction: modular input interface; do not use yet
+PROT_SEQ_FILE = '../cis_bp/homeodomains_hasPWM.fa'  # Input protein sequence fasta file
+PWM_INPUT_TABLE = '../results/cisbp-chu/structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50/pwmTab.txt'
+HMM_FILE = '../pfamHMMs/Homeobox.hmm'    # Location of hmm file
+HMM_LEN = 57                             # Number of match states in HMM
+HMM_NAME = 'Homeobox'                    # Name for the HMM
+HMM_OFFSET = 2                           # Used to offset to a canonical numbering scheme for Homoedomains
+                                         # Set to zero to use default HMM match state numbers (0-indexed)
+CONTACT_MAP = '../structuralAlignmentFiles/homeodomain_contactMap.txt'
+#########
+
 # Pass argument from command line
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--iteration",
@@ -71,13 +83,10 @@ MAX_EDGES_PER_BASE = None       # None means to just ignore this parameter
 RESCALE_PWMS = True             # True if using PWM rescaling
 EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing
 
-TR_SET = 'cisbp'#'b08' #  # Just controls where code looks for the PCMs
+TR_SET = 'cisbp'#'b08' #  # Just controls where code looks for the PCMs  # DEPRECATED
 
-MWID = 6  # Number of base positions in the structural model
+MWID = 6  # Number of base positions in the contact map
 RAND_SEED = 382738375 #78374223 # Random seed for reproducibilty
-
-# The set of "canonical" AA contacting positions for Homeodomains, according to literature
-#CANON9 = [2,3,5,6,47,50,51,54,55]
 
 '''
 MAXITER = args.iteration
@@ -92,8 +101,7 @@ INIT_ORACLE = False    # Deprecated ... was used to compare to previous Naive Ba
 SAMPLE = 100           # Integer to multiply PWM columns by when converting to counts
 
 ### This global is no longer necessary or used due to use of example structural
-### alignment seeding.  However, it still exists in many function signatures, so 
-### I'm leaving it here for now to avoid breaking anything.
+### alignment seeding.  However, it still exists in many function signatures ...
 ORIENT = {'b08': {'Pitx1': 1}, 'cisbp': {'x': 1}}   # Reference start orientation for one of the structures
 
 ###############################################################################
@@ -206,6 +214,25 @@ def makePWMtab(pwms, fname):
             for j in range(len(m[i])):
                 fout.write('%s\t%d\t%s\t%e\n' %(k,i,IND2B[j],m[i,j]))
     fout.close()
+
+def readPWMtab(fname):
+    # Reads in a PWM table in the format output by makePWMtab
+    fin = open(fname, 'r')
+    fin.readline()
+    pwms = {}
+    for line in fin:
+        prot, bpos, base, freq = line.strip().split('\t')
+        bpos = int(bpos)
+        freq = float(freq)
+        if prot not in pwms:
+            pwms[prot] = [[0.0]*4]
+        elif bpos == len(pwms[prot]):
+            pwms[prot].append([0.0]*4)
+        pwms[prot][bpos][B2IND[base]] = freq
+    fin.close()
+    for p in pwms.keys():
+        pwms[p] = np.array(pwms[p])
+    return pwms
 
 def getAlignedPWMs(pwms, aSeqs, start, mWid, flipAli = False):
     """
@@ -338,7 +365,7 @@ def getAAposByStructInfo(fname, wtCutBB, wtCutBase):
       backbone or base, respectively
     """
     cWt = getContactFractions(fname)
-    print(cWt)
+    #print(cWt)
     apos = list(set(cWt['backbone'].keys()) & set(cWt['base'].keys()))
     aaPosList = set([x for x in cWt['backbone'].keys() \
                      if cWt['backbone'][x] >= wtCutBB]) | \
@@ -1499,6 +1526,50 @@ def readStructureFixedStarts(infile):
     fin.close()
     return fixedStarts
 
+def getModularInputs():
+    ##############################################
+    # Under construction:  Modular input interface; do not use yet
+    # Computes necessary data structures given PROT_SEQ_FILE, PWM_INPUT_TABLE,
+    # HMM_FILE, HMM_LEN, HMM_NAME, HMM_OFFSET, and CONTACT_MAP
+    
+    # Get the PWM and protein info
+    pwms = readPWMtab(PWM_INPUT_TABLE)
+    prot = readFromFasta(PROT_SEQ_FILE)
+    subsetDict(prot, set(pwms.keys()))
+    
+    # Get the contact map info
+    edges_hmmPos = {}
+    fin = open(CONTACT_MAP, 'r')
+    fin.readline()
+    aaPosList = set()
+    for line in fin:
+        bpos, aapos = tuple([int(x) for x in line.strip().split()])
+        if bpos in edges_hmmPos:
+            edges_hmmPos[bpos].append(aapos)
+        else:
+            edges_hmmPos[bpos] = [aapos]
+        aaPosList.add(aapos)
+    fin.close()
+    aaPosList = sorted(list(aaPosList))
+    edges = {}
+    for bpos in edges_hmmPos:
+        for aapos in edges_hmmPos[bpos]:
+            if bpos in edges.keys():
+                edges[bpos].append(aaPosList.index(aapos))
+            else:
+                edges[bpos] = [aaPosList.index(aapos)]
+
+    # Convert to "core" contacting amino acids only
+    corePos = [x - HMM_OFFSET for x in aaPosList]
+    fasta = './tmp/seq_fasta_hasPWM.fa'
+    writeToFasta(prot,'./tmp/seq_fasta_hasPWM.fa')
+    hmmerout, matchTab = './tmp/hasPWM.hmmer3.out.txt', './tmp/hasPWM.matchTab.txt'
+    runhmmer3(hmmerout, HMM_FILE, fasta, HMM_NAME, getdescs(fasta), 
+              hmmerDir = HMMER_HOME)
+    core, full, trunc = \
+        makeMatchStateTab(hmmerout, matchTab, prot, HMM_LEN, HMM_NAME, corePos = corePos)
+    return pwms, core, full, edges, edges_hmmPos, aaPosList
+
 def main():
 
     # Reproducible randomness
@@ -1513,6 +1584,21 @@ def main():
 
     pwms, core, full, edges, edges_hmmPos, aaPosList, testProts = \
         getTrainPairsAndInfo(rescalePWMs = RESCALE_PWMS, excludeTestSet = EXCLUDE_TEST)
+
+    """
+    ### TESTING
+    pwms2, core2, full2, edges2, edges_hmmPos2, aaPosList2 = getModularInputs()
+    print len(pwms), len(pwms2)
+    print len(core), len(core2)
+    print len(full), len(full2)
+    print edges_hmmPos
+    print edges_hmmPos2
+    print edges
+    print edges2
+    print aaPosList
+    print aaPosList2
+    """
+
 
     if EXCLUDE_TEST:
         dir = "../new_results/cisbp-chu/"
