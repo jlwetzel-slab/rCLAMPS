@@ -6,7 +6,7 @@ The rCLAMPS framework implements a Gibbs sampling approach to examine protein-DN
 
 A short script reproducing analysis plots and and other data reported in the manuscript is located in ./code/analysis_manuscript.R.  The in-code documentation there describes which additional code files were run to produce inputs to that script.
 
-The main file of interest for running the rCLAMPS framework itself is ./code/gibbsAlignGLM.py - it provides the following input/output functionalities:
+The main file of interest for running the rCLAMPS framework itself is ./code/gibbsAlign_GLM.py - it provides the following input/output functionalities:
 
 Inputs:
 1.  A protein-DNA interface contact map for the protein family of interest - I.e., positions within the DNA-binding domain that canoncially interact with DNA bases, along with the corresponding DNA position indices that they tend to interact with (according to a canonical numbering scheme, based on the underlying multiple structural alignment).
@@ -14,8 +14,8 @@ Inputs:
 
 To reproduce the model described in the manuscript above, the software computes these inputs using various data files stored in this repo, but the code will ultimately be altered to take these inputs modularly from any source in a prescribed format.
  
-./code/gibbsAlignGLM.py outputs a pickle file containing a dictionary of Python list objects (each index in the list corresponds to one of K Gibbs sampling chains), keyed as follows, along with a set of predicted motifs based on the optimal 'final_model' object (see below):
-1.  'final_model':  A dictionary of scikit-learn LogisticRegression objects with multiclass='multinomial', one for each base position in the contact map, keyed by the base position.  Auxilliary functions needed to transform protein sequence inputs into the proper input format for the models and to make specificity predicitons for novel proteins are included in gibbsAlignGLM.py.
+./code/gibbsAlign_GLM.py outputs a pickle file containing a dictionary of Python list objects (each index in the list corresponds to one of K Gibbs sampling chains), keyed as follows, along with a set of predicted motifs based on the optimal 'final_model' object (see below):
+1.  'final_model':  A dictionary of scikit-learn LogisticRegression objects with multiclass='multinomial', one for each base position in the contact map, keyed by the base position.  Auxilliary functions needed to transform protein sequence inputs into the proper input format for the models and to make specificity predicitons for novel proteins are included in gibbsAlign_GLM.py.
 2.  'll':  The log likelihood of the final model.
 3.  'start':  A dictionary of start positions, keyed by the PWM name, of the protein-DNA interaction interface inferred by while estimating the final_model, assuing the PWMs are oriented in the direction given by 'rev'.
 4.  'rev':  A dictionary of boolean values, keyed by the PWM name, of the PWM orientations inferred by while estimating the final_model.  0 is the original orientation, 1 is the reverse complement orientation.
