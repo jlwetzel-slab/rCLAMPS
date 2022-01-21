@@ -34,7 +34,7 @@ from scipy.stats import multinomial
 HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
 
 ######### 
-# Under construction: modular input interface; do not use yet
+# Under construction: do not use yet
 PROT_SEQ_FILE = '../cis_bp/homeodomains_hasPWM.fa'  # Input protein sequence fasta file
 PWM_INPUT_TABLE = '../results/cisbp-chu/structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50/pwmTab.txt'
 HMM_FILE = '../pfamHMMs/Homeobox.hmm'    # Location of hmm file
@@ -1526,9 +1526,9 @@ def readStructureFixedStarts(infile):
     fin.close()
     return fixedStarts
 
-def getModularInputs():
+def getPrecomputedInputs():
     ##############################################
-    # Under construction:  Modular input interface; do not use yet
+    # Under construction - do not use yet
     # Computes necessary data structures given PROT_SEQ_FILE, PWM_INPUT_TABLE,
     # HMM_FILE, HMM_LEN, HMM_NAME, HMM_OFFSET, and CONTACT_MAP
     
@@ -1587,7 +1587,7 @@ def main():
 
     """
     ### TESTING
-    pwms2, core2, full2, edges2, edges_hmmPos2, aaPosList2 = getModularInputs()
+    pwms2, core2, full2, edges2, edges_hmmPos2, aaPosList2 = getPrecomputedInputs()
     print len(pwms), len(pwms2)
     print len(core), len(core2)
     print len(full), len(full2)

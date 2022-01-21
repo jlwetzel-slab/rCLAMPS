@@ -1,5 +1,5 @@
 # Uses an alignemnt from gibbAlign_GLM.py to make predicitons in a 
-# holdout validation scenario wherein for each held out protein,
+# holdout validation scenario where for each held out protein,
 # no other protein with and identical set base-contacting amino acid
 # residues can be included in the training set.
 

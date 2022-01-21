@@ -1,5 +1,3 @@
-# A module for creating pwm files.
-
 import os
 import re
 import numpy as np

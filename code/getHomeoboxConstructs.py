@@ -1,14 +1,4 @@
-# A script for preprocessing homeodomain PWM and protein
-# sequence data for further use later.
-#
-# Currently, the script gathers contruct information from
-# supplemental tables and assigns each amino acid to a match position
-# in the PF00046 (Homeobox) Pfam hmm.  It then assigns each protein
-# to its corresponding PWM, performs all-pairs alignments on these PWMs,
-# followed by star-alignments on subsets of PWMs that cluster well
-# together.  Based on these visual inspection of star-alignments,
-# the PWMs are reoriented and/or reindexed so that all homeodomain
-# PWMs have the same orientation and indexing.
+# Helper functions
 
 from runhmmer import *
 from matAlignLib import *

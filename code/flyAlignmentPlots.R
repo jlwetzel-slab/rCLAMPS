@@ -1,5 +1,5 @@
 # Compare results from optimal output of Gibbs sampler compared 
-# against best result for the FPO/dissertation figures
+# against STAMP
 
 library(data.table)
 library(ggplot2)
