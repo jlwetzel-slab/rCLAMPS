@@ -34,7 +34,7 @@ from scipy.stats import multinomial
 OUTPUT_DIRECTORY = './my_results/allHomeodomainProts/'  # Set to any output directory you want
 ORIGINAL_INPUT_FORMAT = True         # Set to True for exact reproducion of manuscript models
                                      # Set to False to give inputs in format from ../precomputedInputs/ 
-RUN_GIBBS = True                    # Set to False if only want to troubleshoot prior to running Gibbs sampler
+RUN_GIBBS = True                     # Set to False if only want to troubleshoot prior to running Gibbs sampler
 HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
 EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing
 MWID = 6               # Number of base positions in the contact map; set for backward compatibility
