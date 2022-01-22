@@ -27,7 +27,6 @@ def runhmmer3(outfile, hmmfile, protfile, hmmname, descs, hmmerDir = None):
     """Runs HMMER 3 and parses results, storing them into the outfile."""
     
     if hmmerDir is not None:
-      print "Here ..."
       syscall = hmmerDir+"./hmmsearch " + \
         "--notextw --cut_ga "+hmmfile+" "+protfile+" > "+outfile
     elif sys.platform == 'darwin':

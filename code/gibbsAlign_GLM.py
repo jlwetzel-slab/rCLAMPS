@@ -31,31 +31,45 @@ from sklearn.metrics import mean_squared_error
 from scipy import sparse
 from scipy.stats import multinomial
 
+OUTPUT_DIRECTORY = './my_results/allHomeodomainProts/'  # Set to any output directory you want
+ORIGINAL_INPUT_FORMAT = True         # Set to True for exact reproducion of manuscript models
+                                     # Set to False to give inputs in format from ../precomputedInputs/ 
+RUN_GIBBS = True                    # Set to False if only want to troubleshoot prior to running Gibbs sampler
 HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
+EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing
+MWID = 6               # Number of base positions in the contact map; set for backward compatibility
+RAND_SEED = 382738375  # Numpy random seed for used for manuscript results
+MAXITER = 15           # Maximum number of iterations per Markov chain
+N_CHAINS = 100         # Number of Markov chains to use
+INIT_ORACLE = False    # Deprecated ... was used to compare to previous Naive Bayes implementation
+SAMPLE = 100           # Integer to multiply PWM columns by when converting to counts
+OBS_GRPS = 'grpIDcore' # Perform group updates based on identical DNA-contacting protein residues
+if EXCLUDE_TEST:
+    SEED_FILE = '../precomputedInputs/fixedStarts_homeodomains_noTest.txt' # Initial seeds based on structures
+else:
+    SEED_FILE = '../precomputedInputs/fixedStarts_homeodomains_all.txt'    # Initial seeds based on structures
 
-######### 
-# Under construction: do not use yet
-PROT_SEQ_FILE = '../cis_bp/homeodomains_hasPWM.fa'  # Input protein sequence fasta file
-PWM_INPUT_TABLE = '../results/cisbp-chu/structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50/pwmTab.txt'
-HMM_FILE = '../pfamHMMs/Homeobox.hmm'    # Location of hmm file
-HMM_LEN = 57                             # Number of match states in HMM
-HMM_NAME = 'Homeobox'                    # Name for the HMM
-HMM_OFFSET = 2                           # Used to offset to a canonical numbering scheme for Homoedomains
-                                         # Set to zero to use default HMM match state numbers (0-indexed)
-CONTACT_MAP = '../structuralAlignmentFiles/homeodomain_contactMap.txt'
-#########
-
-# Pass argument from command line
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--iteration",
-	type=int, action="store", default=25)
-parser.add_argument("-c", "--nchains",
-    type=int, action="store", default=4)
-parser.add_argument("--initoracle",
-    action="store_true", default=False)
-parser.add_argument("-s", "--sample",
-    type=int, action="store", default=6)
-args = parser.parse_args()
+if ORIGINAL_INPUT_FORMAT:
+    # Set parameters for adjusting the model topology
+    # (i.e., the binarized contact matrix)
+    CORE_POS = 'useStructInfo'    # Uses the precomputed structural alignments
+    APOS_CUT = 'cutAApos_1.0_0.05'  # Controls AA contact threshold for binarization
+    EDGE_CUT = 'edgeCut_1.0_0.05'   # Controls AA contact threshold for binarization
+    MAX_EDGES_PER_BASE = None       # None means to just ignore this parameter
+    RESCALE_PWMS = True             # True if using PWM rescaling
+else:
+    #################
+    # Note:  This input format is not yet fully tested, but should work (see files listed here for format)
+    PROT_SEQ_FILE = '../precomputedInputs/proteins_homeodomains_hasPWM.fa'  # Input protein sequence fasta file
+    PWM_INPUT_TABLE = '../precomputedInputs/pwmTab_homeodomains_all.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
+    CONTACT_MAP = '../precomputedInputs/homeodomain_contactMap.txt'  # A contact map for the domain family
+    HMM_FILE = '../pfamHMMs/Homeobox.hmm'    # Location of hmm file
+    HMM_LEN = 57                             # Number of match states in HMM file
+    HMM_NAME = 'Homeobox'                    # A name for the HMM
+    HMM_OFFSET = 2                           # Used to offset HMM states to canonical numbering scheme for Homoedomains
+                                             # Set to zero to use default HMM match state numbers (0-indexed)
+    TEST_PROT_FILE = '../precomputedInputs/testProts_chu2012_randSplit.txt'  # protein/PWM pairs from PROT_SEQ_FILE that are reserved for later testing    
+    #################
 
 # Used by various functions - do not change these
 BASE = ['A','C','G','T']
@@ -68,37 +82,17 @@ IND2B = {i: x for i, x in enumerate(BASE)}
 IND2A = {i: x for i, x in enumerate(AMINO)}
 COMPL_BASE = {0:3, 1:2, 2:1, 3:0}
 
-OUTPUT_ALI = False  # Output properly aligned sequence logos for the best model
-OUTPUT_MODEL = True  # Output the conditional and bg probs for best model
-COMPARE_RUNS = True  # Output the model comparisons across multiple markov chains
-MAKE_PREDS = False    # Make predicted PWMs for each protein based on best model
-
-# These are parameters for adjusting the model topology
-# (i.e., the binarized contact matrix)
-CORE_POS = 'useStructInfo'    # Uses the precomputed structural alignments
-OBS_GRPS = 'grpIDcore'        # Perform group updates based on common "core" AAs in proteins
-APOS_CUT = 'cutAApos_1.0_0.05'  # Controls AA contact threshold for binarization
-EDGE_CUT = 'edgeCut_1.0_0.05'   # Controls AA contact threshold for binarization
-MAX_EDGES_PER_BASE = None       # None means to just ignore this parameter
-RESCALE_PWMS = True             # True if using PWM rescaling
-EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing
-
-TR_SET = 'cisbp'#'b08' #  # Just controls where code looks for the PCMs  # DEPRECATED
-
-MWID = 6  # Number of base positions in the contact map
-RAND_SEED = 382738375 #78374223 # Random seed for reproducibilty
-
-'''
-MAXITER = args.iteration
-N_CHAINS = args.nchains # Number of Markov chains if running in parallel
-INIT_ORACLE = args.initoracle
-SAMPLE = args.sample
-'''
-
-MAXITER = 15           # Maximum number of iterations per Markov chain
-N_CHAINS = 100         # Number of Markov chains to use
-INIT_ORACLE = False    # Deprecated ... was used to compare to previous Naive Bayes implementation
-SAMPLE = 100           # Integer to multiply PWM columns by when converting to counts
+# Pass arguments from command line
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--iteration",
+    type=int, action="store", default=25)
+parser.add_argument("-c", "--nchains",
+    type=int, action="store", default=4)
+parser.add_argument("--initoracle",
+    action="store_true", default=False)
+parser.add_argument("-s", "--sample",
+    type=int, action="store", default=6)
+args = parser.parse_args()
 
 ### This global is no longer necessary or used due to use of example structural
 ### alignment seeding.  However, it still exists in many function signatures ...
@@ -717,10 +711,7 @@ def getTrainPairsAndInfo(rescalePWMs = False, excludeTestSet = True,
     # model structure for encoding proteins, etc.
 
     # Read data
-    if CORE_POS == 'canon9':
-        aaPosList = CANON9
-    else:
-        aaPosList = CORE_POS
+    aaPosList = CORE_POS
     seqs, pwms, core, full, trunc, aaPosList, edges, edges_hmmPos = \
         getHomeoboxData(['cisbp', 'chu'], MWID, aaPosList = aaPosList,
                         aposCut = APOS_CUT, edgeCut = EDGE_CUT,
@@ -746,7 +737,6 @@ def getTrainPairsAndInfo(rescalePWMs = False, excludeTestSet = True,
                 if prot in testProts:
                     #print prot
                     del x[prot]
-    #print 'PHOX2B' in core1.keys()
 
     # Combine pwms and core seqs remaining into a single dataset
     pwms, core, full = {}, {}, {}
@@ -786,10 +776,7 @@ def getTestProtsAndPWMs(testProtNames, rescalePWMs = False, addResidues = False)
     # Returns the the set of test PWMs given the protein names
 
     # Read data
-    if CORE_POS == 'canon9':
-        aaPosList = CANON9
-    else:
-        aaPosList = CORE_POS
+    aaPosList = CORE_POS
     seqs, pwms, core, full, trunc, aaPosList, edges, edges_hmmPos = \
         getHomeoboxData(['cisbp', 'chu','barreraMuts'], MWID, aaPosList = aaPosList,
                         aposCut = APOS_CUT, edgeCut = EDGE_CUT,
@@ -1360,18 +1347,23 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd,
     return res
     #'''
 
-def getFixedStarts_fromStructures(structContactDir, structMatchStateFile,
-                                  nucChainDir, pwms, edges_hmmPos, core,
+def getFixedStarts_fromStructures(pwms, edges_hmmPos, core,
                                   verbose = False, outfile = None):
     '''
-    Main algorithm function.
+    # NOTE: No longer used due to limited GitHub space for structure files
+    #       Use readSeedAlignment() instead
     Extracts the correct start and orientation within pwms for those with
     corresponding core sequences that are represented in the structural data.
-    :param structAliDir: location of the structural data
     :param pwms: a dictionary {"protein": position weight matrix}
     :param edges: maps base positions to contacting aa core positons
     :param obsGrps: maps distinct core seqs to lists of protein names
     '''
+
+    structContactDir = \
+        '../../../../../pdb/txtSummaries/allAtomsQueryBall_origIndex/Homeobox/'
+    structMatchStateFile = \
+        '../../../../../pdb/txtSummaries/uniquenessScores/Homeobox.txt'
+    nucChainDir = '../../../../../pdb/shilpaFiles/ligand/'
 
     # Get the complete set of core amino acid positions
     corepos = set()
@@ -1516,8 +1508,8 @@ def getFixedStarts_fromStructures(structContactDir, structMatchStateFile,
         fout.close()
     return fixedStarts
 
-def readStructureFixedStarts(infile):
-    # Reads table of structure created by getFixedStarts_fromStructures
+def readSeedAlignment(infile):
+    # Reads table of seed start/orientations (as created by getFixedStarts_fromStructures())
     fixedStarts = {}
     fin = open(infile)
     for line in fin:
@@ -1568,7 +1560,24 @@ def getPrecomputedInputs():
               hmmerDir = HMMER_HOME)
     core, full, trunc = \
         makeMatchStateTab(hmmerout, matchTab, prot, HMM_LEN, HMM_NAME, corePos = corePos)
-    return pwms, core, full, edges, edges_hmmPos, aaPosList
+
+    # Removes test proteins/pwms from the dataset
+    testProts = None
+    if (EXCLUDE_TEST):
+        fin = open(TEST_PROT_FILE,'r')
+        testProts = [x.strip() for x in fin.readlines()]
+        fin.close()
+        for x in [pwms, core, full]:
+            allProts = x.keys()
+            for prot in testProts:
+                try:
+                    del x[prot]
+                except KeyError:
+                    next
+
+    return pwms, core, full, edges, edges_hmmPos, aaPosList, testProts
+
+
 
 def main():
 
@@ -1576,44 +1585,37 @@ def main():
     mWid = MWID
     np.random.seed(RAND_SEED)
 
-    # Get the data
-    if CORE_POS == 'canon9':
-        aaPosList = CANON9
+    if ORIGINAL_INPUT_FORMAT:
+        pwms, core, full, edges, edges_hmmPos, aaPosList, testProts = \
+            getTrainPairsAndInfo(rescalePWMs = RESCALE_PWMS, excludeTestSet = EXCLUDE_TEST)
     else:
-        aaPosList = CORE_POS
-
-    pwms, core, full, edges, edges_hmmPos, aaPosList, testProts = \
-        getTrainPairsAndInfo(rescalePWMs = RESCALE_PWMS, excludeTestSet = EXCLUDE_TEST)
-
+        pwms, core, full, edges, edges_hmmPos, aaPosList, testProts = getPrecomputedInputs()
+    assert MWID == len(edges.keys())
+    
     """
-    ### TESTING
-    pwms2, core2, full2, edges2, edges_hmmPos2, aaPosList2 = getPrecomputedInputs()
-    print len(pwms), len(pwms2)
-    print len(core), len(core2)
-    print len(full), len(full2)
-    print edges_hmmPos
-    print edges_hmmPos2
-    print edges
-    print edges2
-    print aaPosList
-    print aaPosList2
-    """
-
-
+    # Output directories used in manuscript
     if EXCLUDE_TEST:
-        dir = "../new_results/cisbp-chu/"
+        dir = "../results/cisbp-chu/"
     else:
-        dir = "../new_results/cisbp-chuAll/"
+        dir = "../results/cisbp-chuAll/"
     dir += "structFixed1_grpHoldout_multinomial_ORACLE"+str(INIT_ORACLE)+"Chain"+\
         str(N_CHAINS)+"Iter"+str(MAXITER)
     if RESCALE_PWMS:
         dir += 'scaled50'
     if not os.path.exists(dir):
         os.makedirs(dir)
+    """
 
+    # Output directory now set in by user
+    dir = OUTPUT_DIRECTORY
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
+    ## DEPRECATED but leaving for now ...
     trSet = 'cisbp'
     orientKey = ORIENT[trSet].keys()[0]
     orient = ORIENT[trSet][orientKey]
+    ###
 
     print("number of proteins used", len(pwms.keys()))
     # Assign cores to similarity groups
@@ -1630,8 +1632,6 @@ def main():
         fout.write('\n'.join(['%s\t%s' %(k,core[k]) \
                              for k in sorted(core.keys())]))
 
-    startTime = time.time()
-    print("Running %d markov chains ..." %N_CHAINS)
     uniqueProteins = pwms.keys()
     fullX, grpInd = formGLM_fullX(core, edges, uniqueProteins, obsGrps)
     
@@ -1645,61 +1645,41 @@ def main():
     # So that uniqueProteins is in the same order as obsGrps keys
     uniqueProteins = uprots
 
-
-    """
-    # Removed computation of fixedStarts and replaced with input file to save space for the GitHub
-    #structAliFile = \
-    #    '../../../../../pdb/txtSummaries/aliInfo/Homeobox.txt'
-    structContactDir = \
-        '../../../../../pdb/txtSummaries/allAtomsQueryBall_origIndex/Homeobox/'
-    structMatchStateFile = \
-        '../../../../../pdb/txtSummaries/uniquenessScores/Homeobox.txt'
-    nucChainDir = '../../../../../pdb/shilpaFiles/ligand/'
-    fixedStarts = getFixedStarts_fromStructures(structContactDir, structMatchStateFile,
-                                                nucChainDir, pwms, edges_hmmPos, core,
-                                                outfile = dir+'/fixedStarts.txt')
-    """
-    fixedStarts = readStructureFixedStarts(dir+'/fixedStarts.txt')
-
-    for p in fixedStarts.keys():
-        print p, fixedStarts[p]
-
+    # Removed computation to save space for the GitHub
+    #fixedStarts = getFixedStarts_fromStructures(pwms, edges_hmmPos, core, outfile = dir+'/fixedStarts.txt')
+    fixedStarts = readSeedAlignment(SEED_FILE)
     print("We are using %d proteins in the gibbs sampling." %len(uniqueProteins))
-    print("There are %d groups corresponding to distinct core sequences." %len(obsGrps))
 
-    #"""
-    res = runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, 
-                   verbose = False, kSamps = N_CHAINS, orientKey = orientKey, 
-                   orient = orient, fixedStarts = fixedStarts)
-    print("Ran in %.2f seconds" %(time.time()-startTime))
-
-    ll = [x['ll'] for x in res]
-    score = [x['ll'] for x in res]
-    PC_agree = [x['PC_agree'] for x in res]
-    init_PC_agree = [x['init_PC_agree'] for x in res]
-    init_mse = [x['init_mse'] for x in res]
-    final_mse = [x['final_mse'] for x in res]
-    reorient = [x['reorient'] for x in res]
-    start = [x['start'] for x in res]
-    rev = [x['rev'] for x in res]
-    opt = np.argmax(score)
-    print("scores are", score)
-    print("opt is", opt)
-    print("initial score is", sum(init_PC_agree[opt].values()))
-    print("final score is", sum(PC_agree[opt].values()))
-    print("initial mse is", sum(init_mse[opt].values()))
-    print("final mse is", sum(final_mse[opt].values()))
-
-    np.savetxt(dir+"/init_PC_agree.out", init_PC_agree[opt].values())
-    np.savetxt(dir+"/final_PC_agree.out", PC_agree[opt].values())
-    np.savetxt(dir+"/init_mse.out", init_mse[opt].values())
-    np.savetxt(dir+"/final_mse.out", final_mse[opt].values())
-
-
-    print("Writing results in ", dir+'.pickle')
-    with open(dir+'.pickle', 'wb') as f:
-        pickle.dump(res, f)
-    #"""
+    if RUN_GIBBS:
+        print("Running %d markov chains ..." %N_CHAINS)
+        startTime = time.time()
+        res = runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, 
+                       verbose = False, kSamps = N_CHAINS, orientKey = orientKey, 
+                       orient = orient, fixedStarts = fixedStarts)
+        print("Ran in %.2f seconds" %(time.time()-startTime))
+        ll = [x['ll'] for x in res]
+        score = [x['ll'] for x in res]
+        PC_agree = [x['PC_agree'] for x in res]
+        init_PC_agree = [x['init_PC_agree'] for x in res]
+        init_mse = [x['init_mse'] for x in res]
+        final_mse = [x['final_mse'] for x in res]
+        reorient = [x['reorient'] for x in res]
+        start = [x['start'] for x in res]
+        rev = [x['rev'] for x in res]
+        opt = np.argmax(score)
+        print("scores are", score)
+        print("opt is", opt)
+        print("initial score is", sum(init_PC_agree[opt].values()))
+        print("final score is", sum(PC_agree[opt].values()))
+        print("initial mse is", sum(init_mse[opt].values()))
+        print("final mse is", sum(final_mse[opt].values()))
+        np.savetxt(dir+"/init_PC_agree.out", init_PC_agree[opt].values())
+        np.savetxt(dir+"/final_PC_agree.out", PC_agree[opt].values())
+        np.savetxt(dir+"/init_mse.out", init_mse[opt].values())
+        np.savetxt(dir+"/final_mse.out", final_mse[opt].values())
+        print("Writing results in ", dir+'.pickle')
+        with open(dir+'.pickle', 'wb') as f:
+            pickle.dump(res, f)
 
 if __name__ == '__main__':
     main()
