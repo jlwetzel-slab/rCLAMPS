@@ -1520,9 +1520,10 @@ def readSeedAlignment(infile):
 
 def getPrecomputedInputs():
     ##############################################
-    # Under construction - do not use yet
+    # Used when ORIGINAL_INPUT_FORMAT == False; straightforward interface for precomputed inputs.
     # Computes necessary data structures given PROT_SEQ_FILE, PWM_INPUT_TABLE,
-    # HMM_FILE, HMM_LEN, HMM_NAME, HMM_OFFSET, and CONTACT_MAP
+    # HMM_FILE, HMM_LEN, HMM_NAME, HMM_OFFSET, and CONTACT_MAP.
+    # See reference file formats in '../precomputedInputs/' (referenced at top of this script).
     
     # Get the PWM and protein info
     pwms = readPWMtab(PWM_INPUT_TABLE)
