@@ -31,7 +31,7 @@ from sklearn.metrics import mean_squared_error
 from scipy import sparse
 from scipy.stats import multinomial
 
-OUTPUT_DIRECTORY = './my_results/allHomeodomainProts/'  # Set to any output directory you want
+OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
 ORIGINAL_INPUT_FORMAT = True         # Set to True for exact reproducion of manuscript models
                                      # Set to False to give inputs in format from ../precomputedInputs/ 
 RUN_GIBBS = True                     # Set to False if only want to troubleshoot prior to running Gibbs sampler
@@ -1676,8 +1676,8 @@ def main():
         np.savetxt(dir+"/final_PC_agree.out", PC_agree[opt].values())
         np.savetxt(dir+"/init_mse.out", init_mse[opt].values())
         np.savetxt(dir+"/final_mse.out", final_mse[opt].values())
-        print("Writing results in ", dir+'.pickle')
-        with open(dir+'.pickle', 'wb') as f:
+        print("Writing results in ", dir+'result.pickle')
+        with open(dir+'result.pickle', 'wb') as f:
             pickle.dump(res, f)
 
 if __name__ == '__main__':
