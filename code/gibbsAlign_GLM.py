@@ -1520,6 +1520,7 @@ def readSeedAlignment(infile):
 
 def getPrecomputedInputs():
     ##############################################
+    # NOTE: This input method needs some more testing, but appears to be working.
     # Used when ORIGINAL_INPUT_FORMAT == False; straightforward interface for precomputed inputs.
     # Computes necessary data structures given PROT_SEQ_FILE, PWM_INPUT_TABLE,
     # HMM_FILE, HMM_LEN, HMM_NAME, HMM_OFFSET, and CONTACT_MAP.
