@@ -1581,7 +1581,6 @@ def getPrecomputedInputs():
 
 def main():
 
-    # Reproducible randomness
     mWid = MWID
     np.random.seed(RAND_SEED)
 
