@@ -17,7 +17,6 @@ import multiprocessing
 from getHomeoboxConstructs import getUniprobePWMs, getFlyFactorPWMs
 from getHomeoboxConstructs import parseNoyes08Table, makeMatchStateTab
 from getHomeoboxConstructs import readFromFasta, writeToFasta, subsetDict
-from moreExp_veri import getPWM, getPWM_barrera
 import time
 import pickle
 import argparse
@@ -32,13 +31,13 @@ from scipy import sparse
 from scipy.stats import multinomial
 
 OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
-ORIGINAL_INPUT_FORMAT = True         # Set to True for exact reproducion of manuscript models
+ORIGINAL_INPUT_FORMAT = True         # Set to True for reproducion of manuscript model
                                      # Set to False to give inputs in format from ../precomputedInputs/ 
 RUN_GIBBS = True                     # Set to False if only want to troubleshoot prior to running Gibbs sampler
 HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
 EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing
 MWID = 6               # Number of base positions in the contact map; set for backward compatibility
-RAND_SEED = 382738375  # Numpy random seed for used for manuscript results
+RAND_SEED = 78374223   # Numpy random seed for used for manuscript results
 MAXITER = 15           # Maximum number of iterations per Markov chain
 N_CHAINS = 100         # Number of Markov chains to use
 INIT_ORACLE = False    # Deprecated ... was used to compare to previous Naive Bayes implementation
@@ -677,16 +676,6 @@ def initStarts(uniqueProteins, pwms, mWid, fixedStarts = {}):
 #######################################
 # Kaiqian's revised functions for GLM #
 #######################################
-
-#### Not currently used ##########
-def compute_multinomial_logpmf(x, param):
-    n = sum(x)
-    #res = float(Decimal(math.factorial(n)).ln())
-    res = 0
-    for i in range(len(x)):
-        res += x[i]*np.log(param[i]) - float(Decimal(math.factorial(x[i])).ln())
-    return res
-###################################
 
 def useUniqueProteins(obsGrps):
     """
