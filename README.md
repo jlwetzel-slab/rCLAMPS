@@ -19,6 +19,7 @@ To reproduce the model described in the manuscript above, the software computes 
 2.  'll':  The log likelihood of the final model.
 3.  'start':  A dictionary of start positions, keyed by the PWM name, of the protein-DNA interaction interface inferred by while estimating the final_model, assuing the PWMs are oriented in the direction given by 'rev'.
 4.  'rev':  A dictionary of boolean values, keyed by the PWM name, of the PWM orientations inferred by while estimating the final_model.  0 is the original orientation, 1 is the reverse complement orientation.
+5.
 
 For example, to extract the set of optimal models, starts, and orientations from the pickle file, one would use: 
 
