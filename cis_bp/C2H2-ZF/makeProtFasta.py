@@ -1,9 +1,9 @@
 # Make a fasta file for the protein sequences corresponding to particular 
 # motif instances for each TF
 
-PROT_FILE = 'prot_seq_fewZFs.txt'
-MOTIF_LIST_FILE = 'motifTable_mostRecent_fewZFs.txt'
-OUT_FILE = 'prot_mostRecent_fewZFs.fa'
+PROT_FILE = 'prot_seq.txt'
+MOTIF_LIST_FILE = 'motifTable_mostRecent.txt'
+OUT_FILE = 'prot_mostRecent.fa'
 
 # Get the motif IDs of interest
 fin = open(MOTIF_LIST_FILE, 'r')
