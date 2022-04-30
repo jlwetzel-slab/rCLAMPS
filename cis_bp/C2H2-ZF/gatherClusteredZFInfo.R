@@ -41,7 +41,8 @@ write.table(motifs, 'motifTable_mostRecent_fewZFs_clusteredOnly.txt',sep = '\t',
 # Overall properties of dataset
 print(paste("There are",length(unique(doms$prot)),"distinct C2H2-ZFs proteins with a cis-bp",
             "motif and a single cluster of between 2 to 4 ZFs linked by at most 10 AAs b/w ZFs."))
-print(paste("Thes proteins span:"))
+print(paste("These proteins span:"))
+print(paste(length(unique(doms$coreSeq)), "distinct base-contacting amino acid combinations."))
 print(paste(length(table(motifs$TF_Species)), "distinct species across", length(table(motifs$MSource_Identifier)), "distinct sources."))
 print(paste("The distribution of cluster lengths is:"))
 print(table(doms[,.(clustLen=.N), by = 'prot']$clustLen))
@@ -55,7 +56,7 @@ g <- ggplot(doms[,.SD[1], by = 'prot'], aes(x = clustLen, y = motifLen, group = 
 ggsave(plot = g, file = '0_nZFs_V_motifLen.pdf', width = 5, height = 5)
 
 # Remove motif if not greater than 3*clustLen in length
-doms <- doms[motifLen >= 3*clustLen]
+doms <- doms[motifLen > 3*clustLen]
 motifs <- motifs[TF_ID %in% doms$prot]
 
 # Sanity check
@@ -63,10 +64,11 @@ print(length(unique(doms$prot)) == length(intersect(unique(motifs$TF_ID), unique
 print(length(unique(motifs$TF_ID)) == length(intersect(unique(motifs$TF_ID), unique(doms$prot))))
 
 # Overall properties of dataset
-print("Considering only motifs where motifLen >= 3*clustLen:")
+print("Considering only motifs where motifLen > 3*clustLen:")
 print(paste("There are",length(unique(doms$prot)),"distinct C2H2-ZFs proteins with a cis-bp",
             "motif and a single cluster of between 2 to 4 ZFs linked by at most 10 AAs b/w ZFs."))
-print(paste("Thes proteins span:"))
+print(paste("These proteins span:"))
+print(paste(length(unique(doms$coreSeq)), "distinct base-contacting amino acid combinations."))
 print(paste(length(table(motifs$TF_Species)), "distinct species across", length(table(motifs$MSource_Identifier)), "distinct sources."))
 print(paste("The distribution of cluster lengths is:"))
 print(table(doms[,.(clustLen=.N), by = 'prot']$clustLen))
@@ -84,5 +86,5 @@ write.table(doms, 'prot_seq_fewZFs_hmmerOut_clusteredOnly_removeTooShort.txt',se
 write.table(motifs, 'motifTable_mostRecent_fewZFs_clusteredOnly_removeTooShort.txt',sep = '\t', quote = FALSE,row.names = FALSE)
 
 # Which are the really long motifs??
-longMotifs <- motifs[TF_ID %in% doms[motifLen > 5*clustLen]$prot]
-longMotifs.doms <- doms[motifLen > 5*clustLen]
+longMotifs <- motifs[TF_ID %in% doms[motifLen > 4*clustLen]$prot]
+longMotifs.doms <- doms[motifLen > 4*clustLen]
