@@ -17,26 +17,33 @@ import multiprocessing
 from getHomeoboxConstructs import getUniprobePWMs, getFlyFactorPWMs
 from getHomeoboxConstructs import parseNoyes08Table, makeMatchStateTab
 from getHomeoboxConstructs import readFromFasta, writeToFasta, subsetDict
+from moreExp_veri import getPWM, getPWM_barrera
 import time
 import pickle
 import argparse
 import scipy.stats
-import sklearn.metrics
+#import sklearn.metrics
 import math
 from decimal import Decimal
-from scipy.stats import dirichlet
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import mean_squared_error
-from scipy import sparse
-from scipy.stats import multinomial
+#from scipy.stats import dirichlet
+#from sklearn.linear_model import LogisticRegression
+#from sklearn.metrics import mean_squared_error
+#from scipy import sparse
+#from scipy.stats import multinomial
 
-OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
-ORIGINAL_INPUT_FORMAT = True         # Set to True for reproducion of manuscript model
+DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
+#OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
+OUTPUT_DIRECTORY = '../my_results/zf-C2H2/'  # Set to any output directory you want
+ORIGINAL_INPUT_FORMAT = False        # Set to True for reproducion of manuscript model
                                      # Set to False to give inputs in format from ../precomputedInputs/ 
 RUN_GIBBS = True                     # Set to False if only want to troubleshoot prior to running Gibbs sampler
 HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
 EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing
-MWID = 6               # Number of base positions in the contact map; set for backward compatibility
+MWID = 5               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
+MULTI_DOMAIN = True    # Set to True if multiple domains per protein instanct (e.g. with zf-C2H2), False otherwise
+if MULTI_DOMAIN:
+    LEFT_OLAP = 1      # Number of 5' bases in contact map overlapping with next domain instance (if multi-domain) - 1 for zf-C2H2
+    RIGHT_OLAP = 1     # Number of 3' bases in contact map overlpping with previous domain instance (if multi-domain) - 1 for zf-C2H2
 RAND_SEED = 382738375  # Numpy random seed for used for manuscript results
 MAXITER = 15           # Maximum number of iterations per Markov chain
 N_CHAINS = 100         # Number of Markov chains to use
@@ -57,18 +64,20 @@ if ORIGINAL_INPUT_FORMAT:
     MAX_EDGES_PER_BASE = None       # None means to just ignore this parameter
     RESCALE_PWMS = True             # True if using PWM rescaling
 else:
-    #################
-    # Note:  This input format is not yet fully tested, but should work (see files listed here for format)
-    PROT_SEQ_FILE = '../precomputedInputs/proteins_homeodomains_hasPWM.fa'  # Input protein sequence fasta file
-    PWM_INPUT_TABLE = '../precomputedInputs/pwmTab_homeodomains_all.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
-    CONTACT_MAP = '../precomputedInputs/homeodomain_contactMap.txt'  # A contact map for the domain family
-    HMM_FILE = '../pfamHMMs/Homeobox.hmm'    # Location of hmm file
-    HMM_LEN = 57                             # Number of match states in HMM file
-    HMM_NAME = 'Homeobox'                    # A name for the HMM
-    HMM_OFFSET = 2                           # Used to offset HMM states to canonical numbering scheme for Homoedomains
-                                             # Set to zero to use default HMM match state numbers (0-indexed)
-    TEST_PROT_FILE = '../precomputedInputs/testProts_chu2012_randSplit.txt'  # protein/PWM pairs from PROT_SEQ_FILE that are reserved for later testing    
-    #################
+    if DOMAIN_TYPE == 'homeodomain':
+        PROT_SEQ_FILE = '../precomputedInputs/proteins_homeodomains_hasPWM.fa'  # Input protein sequence fasta file
+        PWM_INPUT_TABLE = '../precomputedInputs/pwmTab_homeodomains_all.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
+        CONTACT_MAP = '../precomputedInputs/homeodomain_contactMap.txt'  # A contact map for the domain family
+        HMM_FILE = '../pfamHMMs/Homeobox.hmm'    # Location of hmm file
+        HMM_LEN = 57                             # Number of match states in HMM file
+        HMM_NAME = 'Homeobox'                    # A name for the HMM
+        HMM_OFFSET = 2                           # Used to offset HMM states to canonical numbering scheme for Homoedomains
+                                                 # Set to zero to use default HMM match state numbers (0-indexed)
+        TEST_PROT_FILE = '../precomputedInputs/testProts_chu2012_randSplit.txt'  # protein/PWM pairs from PROT_SEQ_FILE that are reserved for later testing    
+    elif DOMAIN_TYPE == 'zf-C2H2':
+        PROT_SEQ_FILE = '../precomputedInputs/zf-C2H2/prot_seq_fewZFs_hmmerOut_clusteredOnly_removeTooShort.txt'  # Input protein domain file subsetted to relvant amino acid contacting positions
+        PWM_INPUT_TABLE = '../precomputedInputs/zf-C2H2/pwmTab_fewZFs_clusteredOnly_removeTooShort.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
+        CONTACT_MAP = '../precomputedInputs/zf-C2H2/zf-C2H2_contactMap.txt'  # A contact map for the domain family
 
 # Used by various functions - do not change these
 BASE = ['A','C','G','T']
@@ -1509,7 +1518,7 @@ def readSeedAlignment(infile):
 
 def getPrecomputedInputs():
     ##############################################
-    # NOTE: This input method needs some more testing, but appears to be working.
+    # NOTE: This input method needs some more testing, but appears to be working for homeodomain inputs.
     # Used when ORIGINAL_INPUT_FORMAT == False; straightforward interface for precomputed inputs.
     # Computes necessary data structures given PROT_SEQ_FILE, PWM_INPUT_TABLE,
     # HMM_FILE, HMM_LEN, HMM_NAME, HMM_OFFSET, and CONTACT_MAP.
@@ -1568,7 +1577,69 @@ def getPrecomputedInputs():
 
     return pwms, core, full, edges, edges_hmmPos, aaPosList, testProts
 
+def getPrecomputedInputs_zfC2H2(rescalePWMs = True):
+    # Get the necesarry precomputed information for the C2H2-ZF inputs
+    # Assumes an input table mapping protein IDs to ordered arrays of domains
+    # subsetted to the appropriate base-contacting positions.
 
+    # Get the PWM info
+    # Get the motif IDs of interest
+    fin = open('../cis_bp/C2H2-ZF/motifTable_mostRecent_fewZFs_clusteredOnly_removeTooShort.txt', 'r')
+    fin.readline()
+    motifMap = {}
+    motifs = set()
+    for line in fin:
+        l = line.strip().split('\t')
+        prot, motif = l[0],l[3]
+        motifMap[prot] = motif
+        motifs.add(motif)
+    fin.close()
+    #print motifMap
+    pwms = getPWM('../cis_bp/C2H2-ZF/PWM.txt', set(motifMap.keys()), motifs, ID_field = 'TF')
+    
+    # Get protein info
+    core = {}
+    fin = open(PROT_SEQ_FILE, 'r')
+    fin.readline()
+    for line in fin:
+        l = line.strip().split()
+        pname, coreSeq = l[0], l[7]
+        if core.has_key(pname):
+            core[pname] += coreSeq
+        else:
+            core[pname] = coreSeq
+    fin.close()
+    subsetDict(core, set(pwms.keys()))
+    
+    # Get the contact map info
+    edges_hmmPos = {}
+    fin = open(CONTACT_MAP, 'r')
+    fin.readline()
+    aaPosList = set()
+    for line in fin:
+        bpos, aapos = tuple([int(x) for x in line.strip().split()])
+        if bpos in edges_hmmPos:
+            edges_hmmPos[bpos].append(aapos)
+        else:
+            edges_hmmPos[bpos] = [aapos]
+        aaPosList.add(aapos)
+    fin.close()
+    aaPosList = sorted(list(aaPosList))
+    edges = {}
+    for bpos in edges_hmmPos:
+        for aapos in edges_hmmPos[bpos]:
+            if bpos in edges.keys():
+                edges[bpos].append(aaPosList.index(aapos))
+            else:
+                edges[bpos] = [aaPosList.index(aapos)]
+
+    # Rescale the PWMs?
+    if rescalePWMs:
+        for k in pwms.keys():
+            pwms[k] = rescalePWM(pwms[k], maxBaseSelect = 50)
+
+
+    return pwms, core, edges, edges_hmmPos, aaPosList
 
 def main():
 
@@ -1579,9 +1650,21 @@ def main():
         pwms, core, full, edges, edges_hmmPos, aaPosList, testProts = \
             getTrainPairsAndInfo(rescalePWMs = RESCALE_PWMS, excludeTestSet = EXCLUDE_TEST)
     else:
-        pwms, core, full, edges, edges_hmmPos, aaPosList, testProts = getPrecomputedInputs()
+        if DOMAIN_TYPE == 'homeodomain':
+            pwms, core, full, edges, edges_hmmPos, aaPosList, testProts = getPrecomputedInputs()
+        elif DOMAIN_TYPE == 'zf-C2H2':
+            pwms, core, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2()
+            """
+            for k in sorted(core.keys()):
+                print k, core[k], len(pwms[k])
+                print pwms[k]
+                print len(pwms)
+            print edges
+            print edges_hmmPos
+            print aaPosList
+            """
     assert MWID == len(edges.keys())
-    
+
     """
     # Output directories used in manuscript
     if EXCLUDE_TEST:
@@ -1607,13 +1690,14 @@ def main():
     orient = ORIENT[trSet][orientKey]
     ###
 
-    print("number of proteins used", len(pwms.keys()))
+    print("number of proteins used", len(core.keys()))
     # Assign cores to similarity groups
     obsGrps = assignObsGrps(core, by = OBS_GRPS)
     with open(dir+'/obsGrpTab.txt', 'w') as fout:
         for k in sorted(obsGrps.keys()):
             for x in obsGrps[k]:
                 fout.write('%s\t%s\n' %(k,x))
+    print("number of distinct base-contacting combinations", len(obsGrps.keys()))
 
     print("Output written to: %s" %dir)
     # Write the PWMs used and other basic info to files
@@ -1622,9 +1706,11 @@ def main():
         fout.write('\n'.join(['%s\t%s' %(k,core[k]) \
                              for k in sorted(core.keys())]))
 
+    print pwms['T094828_2.00']
     uniqueProteins = pwms.keys()
     fullX, grpInd = formGLM_fullX(core, edges, uniqueProteins, obsGrps)
-    
+
+    """    
     #Sanity checks and setting up correct fixed unique protein ordering 
     for g in obsGrps.keys():
         assert len(obsGrps[g])*4 == grpInd[g][1]-grpInd[g][0]+1
@@ -1670,6 +1756,7 @@ def main():
         print("Writing results in ", dir+'result.pickle')
         with open(dir+'result.pickle', 'wb') as f:
             pickle.dump(res, f)
+    """
 
 if __name__ == '__main__':
     main()

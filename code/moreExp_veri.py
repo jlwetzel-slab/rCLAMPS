@@ -27,7 +27,7 @@ def convertToFasta(fpath_txt):
     file.close()
     return fpath_fa
 
-def getPWM(fpath, tfs, motifs, verbose = False):
+def getPWM(fpath, tfs, motifs, verbose = False, ID_field = "TF Name"):
     # Extracts motifs from the CIS-BP PWM.txt file subset to 
     # only those whose TF_Name is in tfs (set) and whose 
     # Motif_ID is in motifs (set)
@@ -36,11 +36,10 @@ def getPWM(fpath, tfs, motifs, verbose = False):
     line = fin.readline()
 
     while line != "":
-        line = fin.readline()
         lineArr = line.split("\t")
         if verbose:
             print lineArr
-        if lineArr[0] == "TF Name":
+        if lineArr[0] == ID_field:
             tf = lineArr[1].rstrip()
         if lineArr[0] == "Pos":
             pwm = []
@@ -52,6 +51,8 @@ def getPWM(fpath, tfs, motifs, verbose = False):
             pwm.append(onevec_list)
         if lineArr[0] == '\n' and tf in tfs and motif in motifs:
             pwms[tf] = np.array(pwm)
+            line = fin.readline()
+        line = fin.readline()
     return pwms
 
 def getPWM_barrera(fpath, motifs, tfnFull, verbose = False):
