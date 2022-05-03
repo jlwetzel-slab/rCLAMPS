@@ -22,14 +22,14 @@ import time
 import pickle
 import argparse
 import scipy.stats
-#import sklearn.metrics
+import sklearn.metrics
 import math
 from decimal import Decimal
-#from scipy.stats import dirichlet
-#from sklearn.linear_model import LogisticRegression
-#from sklearn.metrics import mean_squared_error
-#from scipy import sparse
-#from scipy.stats import multinomial
+from scipy.stats import dirichlet
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import mean_squared_error
+from scipy import sparse
+from scipy.stats import multinomial
 
 DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
 #OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
@@ -677,7 +677,6 @@ def initStarts(uniqueProteins, pwms, mWid, nDoms, fixedStarts = {}):
     for k in uniqueProteins:
         if k not in fixedStarts:
             rev[k] = np.random.randint(low = 0, high = 2)
-            #print len(pwms[k])-((mWid-RIGHT_OLAP)*nDoms[k]+RIGHT_OLAP) + 1, len(pwms[k]), mWid, nDoms[k], RIGHT_OLAP
             start[k] = np.random.randint(low = 0,
                                          high = len(pwms[k])-((mWid-RIGHT_OLAP)*nDoms[k]+RIGHT_OLAP) + 1)
         else:
@@ -834,14 +833,14 @@ def getTestProtsAndPWMs(testProtNames, rescalePWMs = False, addResidues = False)
 
 ###################################
 
-def formGLM_fullX(core, edges, uniqueProteins, obsGrps, numAAs = 19,
+def formGLM_fullX(core, edges, uniqueProteins, obsGrps, numAAs = 19, domainOrder = 1,
                   modelType = 'classifier'):
     """
     Function for forming a full X using all unique proteins including hold out proteins.
     :param core: a dictionary {"protein": "amino acid sequence"}
     :param edges: a dictionary {"dna base position": [amino acid positions]} defining the contact map
     :param uniqueProteins: an array of unique proteins
-    :param multiDomain: set to True if multiple domains represented in each protein
+    :param domainOrder: set to -1 for arrayed domain proteins multidomain model is set up C-N w.r.t. binding site orientation, 1 otherwise 
     :return: a dictionary, each base position j corresponds to a matrix, 
     whose dimension is n*4 by E_j*numAAs, where n is the total number of domains across all proteins,
     and E_j the number of amino acids contact at the jth base position of the contact map (i.e., edges).
@@ -865,7 +864,12 @@ def formGLM_fullX(core, edges, uniqueProteins, obsGrps, numAAs = 19,
             grpStart = rowNum
             for p in obsGrps[g]:
                 nCores = len(core[p])/coreLen
-                for c in range(nCores):
+                # Add X vectors for domains in reverse order for ZFs
+                if domainOrder == -1:
+                    cRange = range(nCores-1,-1,-1)
+                else:
+                    cRange = range(nCores)
+                for c in cRange:
                     core_seq = core[p][coreLen*c:coreLen*(c+1)]
                     x = []
                     for i in aa_pos:
@@ -950,7 +954,7 @@ def formGLM_testX(X, index, modelType = 'classifier'):
         return testX        
 
 
-def formGLM_Y(keysToUse):
+def formGLM_Y(keysToUse, nDoms):
     """
     Function for forming Y for either train or test Y, each protein is [A,T,C,G], which is [0,1,2,3] in code
     :param keysToUse: an array of proteins used
@@ -959,11 +963,11 @@ def formGLM_Y(keysToUse):
     n = len(keysToUse)
     Y = {}
     for j in range(MWID):
-        Y[j] = np.array([0,1,2,3] * n)
+        Y[j] = np.array([0,1,2,3] * np.sum([nDoms[k] for k in keysToUse]))
     return Y
 
 
-def formGLM_trainW(pwms, uniqueProteins, start, rev, modelType = 'classifier'):
+def formGLM_trainW(pwms, uniqueProteins, nDoms, start, rev, modelType = 'classifier'):
     """
     Since we are using weighted multinomial logsitic regression, this function creates weights for
     trained proteins based on given position weight matrix, starting position, and orientation for each protein.
@@ -975,6 +979,7 @@ def formGLM_trainW(pwms, uniqueProteins, start, rev, modelType = 'classifier'):
     every four numbers represent one protein's weights.
     """
 
+    # The PWM columns spanned by the (potentially multi-domain) interface under the current alignment
     weights = {}
     for i, protein in enumerate(uniqueProteins):
         if rev[protein] == 1:
@@ -982,10 +987,19 @@ def formGLM_trainW(pwms, uniqueProteins, start, rev, modelType = 'classifier'):
         else:
             pwm = pwms[protein]
         weights[protein] = {}
-        for j in range(MWID):
-            weights[protein][j] = pwm[j+start[protein]][:]
-
-    #print weights
+        # Allows arrayed multi-domain proteins with overlaps
+        for d in range(nDoms[protein]):
+            for j in range(MWID):
+                if d == 0:
+                    weights[protein][j] = pwm[j+start[protein]][:]
+                else:
+                    weights[protein][j] = \
+                        np.concatenate((weights[protein][j],
+                                        pwm[j+start[protein]+d*(MWID-RIGHT_OLAP)][:]), axis = None)
+        # For single domain case only(above is more general)
+        #for j in range(MWID):
+        #    weights[protein][j] = pwm[j+start[protein]][:]
+        #    print weights[protein][j]
 
     W = {}
     if modelType == 'classifier':
@@ -996,16 +1010,7 @@ def formGLM_trainW(pwms, uniqueProteins, start, rev, modelType = 'classifier'):
             W[j] = W[j][1:len(W[j])]
             # normalize weights for each W[j]
             W[j] = W[j] / sum(W[j])
-    elif modelType == 'regressor':
-        for j in range(MWID):
-            W[j] = {}
-            for base in BASE:
-                W[j][base] = np.zeros(len(uniqueProteins), dtype = 'float')
-                for i, protein in enumerate(uniqueProteins):
-                    W[j][base][i] = weights[protein][j][B2IND[base]]
-                #W[j][base] = W[j][base][1:len(W[j][base])]
-                # normalize weights for each W[j]
-                #W[j][base] = W[j][base] / sum(W[j][base])
+            print len(W[j])
 
     return W
 
@@ -1041,9 +1046,6 @@ def createGLMModel(trainX, trainY, trainW):
     :return:
     model: a dictionary of {base position: GLM model}
     """
-    # Standarize features [Question]: I'm not sure that whether I should standardize X since X is very sparse
-    #scaler = StandardScaler()
-    #X_std = scaler.fit_transform(trainX)
     model = {}
     for j in range(MWID):
         #clf = LogisticRegression(fit_intercept=True, random_state=0, multi_class='multinomial', solver='newton-cg')
@@ -1130,11 +1132,10 @@ def sampleStartPosGLM(testX, uniqueProteins, index, pwms, edges, model):
 
     return s, r, lls
 
-# debug function
-def form_model(fullX, uniqueProteins, pwms, start, rev):
+def form_model(fullX, uniqueProteins, nDoms, pwms, start, rev):
     X = fullX
-    Y = formGLM_Y(uniqueProteins)
-    W = formGLM_trainW(pwms, uniqueProteins, start, rev)
+    Y = formGLM_Y(uniqueProteins, nDoms)
+    W = formGLM_trainW(pwms, uniqueProteins, nDoms, start, rev)
     model = createGLMModel(X, Y, W)
     return model
 
@@ -1217,14 +1218,15 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
         start, rev = initStarts(uniqueProteins, pwms, len(edges.keys()), nDoms, fixedStarts = fixedStarts)
 
     #print [(start[x],rev[x], nDoms[x], len(pwms[x])) for x in pwms.keys()]
-    
-    ##### Good up to here ####
 
-    """
-    init_model = form_model(fullX, uniqueProteins, pwms, start, rev)
+    init_model = form_model(fullX, uniqueProteins, nDoms, pwms, start, rev)
+
+    ##### Good up to here ####
+    ## May need to test these functions for multidomain version??
     init_PC_agree = computePC_agree(init_model, uniqueProteins, pwms, start, rev, fullX)
     init_mse = compute_MSE(init_model, uniqueProteins, pwms, start, rev, fullX)
 
+    """
     # Alternate between model construction and latent variable updates
     # until the latent variables cease to change
     # converged = False
@@ -1250,8 +1252,8 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
             trainProteins = uniqueProteins[:startInd_ho/4] + \
                 uniqueProteins[endIndex_ho/4+1:]
             trainX = formGLM_trainX(fullX,startInd_ho,endIndex_ho)
-            trainY = formGLM_Y(trainProteins)
-            trainW = formGLM_trainW(pwms, trainProteins, start, rev)
+            trainY = formGLM_Y(trainProteins, nDoms)
+            trainW = formGLM_trainW(pwms, trainProteins, nDoms, start, rev)
             model = createGLMModel(trainX, trainY, trainW)
 
             # Sample a new start/orientation for each held out protein 
@@ -1309,7 +1311,7 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
     rev = bestRev
     ll = bestll
 
-    final_model = form_model(fullX, uniqueProteins, pwms, start, rev)
+    final_model = form_model(fullX, uniqueProteins, nDoms, pwms, start, rev)
     PC_agree = computePC_agree(final_model, uniqueProteins, pwms, start, rev, fullX)
     final_mse = compute_MSE(final_model, uniqueProteins, pwms, start, rev, fullX)
 
@@ -1319,7 +1321,7 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
     #if rev[orientKey] != orient:
     #    reorient = True
 
-    final_model = form_model(fullX, uniqueProteins, pwms, start, rev)
+    final_model = form_model(fullX, uniqueProteins, nDoms, pwms, start, rev)
     PC_agree = computePC_agree(final_model, uniqueProteins, pwms, start, rev, fullX)
 
     return {'start': start, 'rev': rev, 'll': ll, "reorient": reorient,
@@ -1727,11 +1729,14 @@ def main():
     uniqueProteins = pwms.keys()
     if DOMAIN_TYPE == 'zf-C2H2':
         multiDomain = True
+        domainOrder = -1
     else:
         multiDomain = False
+        domainOrder = 1
 
     # Form the complete X matrix
-    fullX, grpInd = formGLM_fullX(core, edges, uniqueProteins, obsGrps)
+    fullX, grpInd = formGLM_fullX(core, edges, uniqueProteins, obsGrps, domainOrder = domainOrder)
+    #print fullX[0][0:5,:]
     print fullX[0].shape
     print len(grpInd)
     print aaPosList
@@ -1760,7 +1765,6 @@ def main():
     nDoms = {}
     for p in uniqueProteins:
         nDoms[p] = len(core[p])/len(aaPosList)
-    print nDoms
     
     print("We are using %d proteins in the gibbs sampling." %len(uniqueProteins))
 
