@@ -1216,7 +1216,7 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
     else:
         start, rev = initStarts(uniqueProteins, pwms, len(edges.keys()), nDoms, fixedStarts = fixedStarts)
 
-    #print [(start[x],rev[x], nDoms[x], len(pwms[x])) for x in pwms.keys()]
+    print [(start[x],rev[x], nDoms[x], len(pwms[x])) for x in pwms.keys()]
     
     ##### Good up to here ####
 
