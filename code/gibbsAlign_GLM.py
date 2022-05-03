@@ -41,9 +41,10 @@ HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
 EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing
 MWID = 4               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
 MULTI_DOMAIN = True    # Set to True if multiple domains per protein instanct (e.g. with zf-C2H2), False otherwise
-if MULTI_DOMAIN:
-    LEFT_OLAP = 1      # Number of 5' bases in contact map overlapping with next domain instance (if multi-domain) - 1 for zf-C2H2
+if MULTI_DOMAIN and DOMAIN_TYPE == 'zf-C2H2':
     RIGHT_OLAP = 1     # Number of 3' bases in contact map overlpping with previous domain instance (if multi-domain) - 1 for zf-C2H2
+else:
+    RIGHT_OLAP = 0     # No domain base overlap for single-domain proteins
 RAND_SEED = 382738375  # Numpy random seed for used for manuscript results
 MAXITER = 15           # Maximum number of iterations per Markov chain
 N_CHAINS = 100         # Number of Markov chains to use
@@ -666,7 +667,7 @@ def assignObsGrps(core, by = 'grpIDcore'):
 
     return grps
 
-def initStarts(uniqueProteins, pwms, mWid, fixedStarts = {}):
+def initStarts(uniqueProteins, pwms, mWid, nDoms, fixedStarts = {}):
     """
     Algorithm function.
     Returns initial values for the starting positions and orientations
@@ -676,8 +677,9 @@ def initStarts(uniqueProteins, pwms, mWid, fixedStarts = {}):
     for k in uniqueProteins:
         if k not in fixedStarts:
             rev[k] = np.random.randint(low = 0, high = 2)
+            #print len(pwms[k])-((mWid-RIGHT_OLAP)*nDoms[k]+RIGHT_OLAP) + 1, len(pwms[k]), mWid, nDoms[k], RIGHT_OLAP
             start[k] = np.random.randint(low = 0,
-                                         high = len(pwms[k])-mWid + 1)
+                                         high = len(pwms[k])-((mWid-RIGHT_OLAP)*nDoms[k]+RIGHT_OLAP) + 1)
         else:
             rev[k] = fixedStarts[k]['rev']
             start[k] = fixedStarts[k]['start']
@@ -846,11 +848,11 @@ def formGLM_fullX(core, edges, uniqueProteins, obsGrps, numAAs = 19,
     """
 
     # Get the number of amino acid positions in the contact model
-    allAApos = set()  ##
-    for j in range(len(edges)):  ##
-        for k in edges[j]:  ##
-            allAApos.add(k)  ##
-    coreLen = len(allAApos)  ##
+    allAApos = set()
+    for j in range(len(edges)):
+        for k in edges[j]:
+            allAApos.add(k)
+    coreLen = len(allAApos)
 
     X = {}
     grpInd = {}  # Maps obsGrp keys to (start, end) matrix row index pairs 
@@ -862,9 +864,9 @@ def formGLM_fullX(core, edges, uniqueProteins, obsGrps, numAAs = 19,
         for g in obsGrps.keys():
             grpStart = rowNum
             for p in obsGrps[g]:
-                nCores = len(core[p])/coreLen  ##
-                for c in range(nCores):  ##
-                    core_seq = core[p][coreLen*c:coreLen*(c+1)]  ##
+                nCores = len(core[p])/coreLen
+                for c in range(nCores):
+                    core_seq = core[p][coreLen*c:coreLen*(c+1)]
                     x = []
                     for i in aa_pos:
                         cur_x = [0] * numAAs
@@ -1168,7 +1170,7 @@ def compute_MSE(model, uniqueProteins, pwms, start, rev, fullX):
         mse_dic[j] = mse/float(len(uniqueProteins))
     return mse_dic
 
-def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd,
+def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
                    maxIters=25, randSeed=None, verbose=False, orientKey=None, 
                    orient=None, fixedStarts = {}, init_oracle=False):
     """
@@ -1212,11 +1214,13 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd,
         start = nb_S[nb_opt]
         rev = nb_O[nb_opt]
     else:
-        start, rev = initStarts(uniqueProteins, pwms, len(edges.keys()), fixedStarts = fixedStarts)
+        start, rev = initStarts(uniqueProteins, pwms, len(edges.keys()), nDoms, fixedStarts = fixedStarts)
 
-
+    print [(start[x],rev[x], nDoms[x], len(pwms[x])) for x in pwms.keys()]
+    
     ##### Good up to here ####
 
+    """
     init_model = form_model(fullX, uniqueProteins, pwms, start, rev)
     init_PC_agree = computePC_agree(init_model, uniqueProteins, pwms, start, rev, fullX)
     init_mse = compute_MSE(init_model, uniqueProteins, pwms, start, rev, fullX)
@@ -1322,8 +1326,10 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd,
             "PC_agree": PC_agree, "init_PC_agree": init_PC_agree, 
             "score": sum(PC_agree.values()), "init_mse": init_mse, 
             "final_mse": final_mse, "final_model": final_model}
+    """
+    return None
 
-def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, 
+def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
              verbose = False, kSamps = 25, orientKey = None, orient = None, 
              fixedStarts = {}):
     """ Runs the gibbsSampler routine K times using parallel executions
@@ -1333,7 +1339,7 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd,
     ### For trouble-shooting (runs only one chain)
     maxiter = MAXITER
     res = [gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX,
-                          grpInd, maxiter, np.random.randint(0,1e9), 
+                          grpInd, nDoms, maxiter, np.random.randint(0,1e9), 
                           verbose, orientKey, orient, fixedStarts, 
                           INIT_ORACLE)]
     return res
@@ -1348,7 +1354,7 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd,
     procs = []
     for k in range(kSamps):
         args = (pwms, edges, uniqueProteins, obsGrps, fullX,
-                grpInd, maxiter, np.random.randint(0,1e9),
+                grpInd, nDoms, maxiter, np.random.randint(0,1e9),
                 verbose, orientKey, orient, fixedStarts,INIT_ORACLE)
         procs.append(p.apply_async(gibbsSampleGLM, args=args))
     res = [x.get() for x in procs]
@@ -1723,12 +1729,13 @@ def main():
         multiDomain = True
     else:
         multiDomain = False
+
+    # Form the complete X matrix
     fullX, grpInd = formGLM_fullX(core, edges, uniqueProteins, obsGrps)
     print fullX[0].shape
     print len(grpInd)
     print aaPosList
 
-    #"""    
     #Sanity checks and setting up correct fixed unique protein ordering 
     for g in obsGrps.keys():
         assert len(obsGrps[g])*4*(len(g)/len(aaPosList)) == grpInd[g][1]-grpInd[g][0]+1
@@ -1746,13 +1753,21 @@ def main():
     #### NOTE: Still need to compute fixed starts for the C2H2-ZFs
     if DOMAIN_TYPE == 'homeodomain':
         fixedStarts = readSeedAlignment(SEED_FILE)
+    else:
+        fixedStarts = dict()
+
+    # Compute number of domains in each unique protein
+    nDoms = {}
+    for p in uniqueProteins:
+        nDoms[p] = len(core[p])/len(aaPosList)
+    print nDoms
     
     print("We are using %d proteins in the gibbs sampling." %len(uniqueProteins))
 
     if RUN_GIBBS:
         print("Running %d markov chains ..." %N_CHAINS)
         startTime = time.time()
-        res = runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, 
+        res = runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
                        verbose = False, kSamps = N_CHAINS, orientKey = orientKey, 
                        orient = orient, fixedStarts = fixedStarts)
         print("Ran in %.2f seconds" %(time.time()-startTime))
