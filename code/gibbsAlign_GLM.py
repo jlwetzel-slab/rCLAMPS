@@ -39,7 +39,7 @@ ORIGINAL_INPUT_FORMAT = False        # Set to True for reproducion of manuscript
 RUN_GIBBS = True                     # Set to False if only want to troubleshoot prior to running Gibbs sampler
 HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
 EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing
-MWID = 5               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
+MWID = 4               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
 MULTI_DOMAIN = True    # Set to True if multiple domains per protein instanct (e.g. with zf-C2H2), False otherwise
 if MULTI_DOMAIN:
     LEFT_OLAP = 1      # Number of 5' bases in contact map overlapping with next domain instance (if multi-domain) - 1 for zf-C2H2
@@ -78,6 +78,7 @@ else:
         PROT_SEQ_FILE = '../precomputedInputs/zf-C2H2/prot_seq_fewZFs_hmmerOut_clusteredOnly_removeTooShort.txt'  # Input protein domain file subsetted to relvant amino acid contacting positions
         PWM_INPUT_TABLE = '../precomputedInputs/zf-C2H2/pwmTab_fewZFs_clusteredOnly_removeTooShort.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
         CONTACT_MAP = '../precomputedInputs/zf-C2H2/zf-C2H2_contactMap.txt'  # A contact map for the domain family
+        SEED_FILE = '../precomputedInputs/fixedStarts_homeodomains_all.txt'    # Initial seeds based on structures
 
 # Used by various functions - do not change these
 BASE = ['A','C','G','T']
@@ -836,20 +837,24 @@ def formGLM_fullX(core, edges, uniqueProteins, obsGrps, numAAs = 19,
     """
     Function for forming a full X using all unique proteins including hold out proteins.
     :param core: a dictionary {"protein": "amino acid sequence"}
-    :param edges: a dictionary {"dna base position": [amino acid positions]}
+    :param edges: a dictionary {"dna base position": [amino acid positions]} defining the contact map
     :param uniqueProteins: an array of unique proteins
+    :param multiDomain: set to True if multiple domains represented in each protein
     :return: a dictionary, each base position j corresponds to a matrix, 
-    whose dimension is n*4 by E_j*numAAs, where n is the number of unique proteins,
-    and E_j the number of amino acids contact at the jth base position.
+    whose dimension is n*4 by E_j*numAAs, where n is the total number of domains across all proteins,
+    and E_j the number of amino acids contact at the jth base position of the contact map (i.e., edges).
     """
 
-    #print(core)
-    #print(edges)
-    #print(uniqueProteins)
+    # Get the number of amino acid positions in the contact model
+    allAApos = set()  ##
+    for j in range(len(edges)):  ##
+        for k in edges[j]:  ##
+            allAApos.add(k)  ##
+    coreLen = len(allAApos)  ##
 
     X = {}
     grpInd = {}  # Maps obsGrp keys to (start, end) matrix row index pairs 
-    for j in range(MWID):
+    for j in range(len(edges)):
         aa_pos = edges[j]
         E_j = len(aa_pos)
         X[j] = np.array([], dtype=np.int64).reshape(0, numAAs*E_j)
@@ -857,23 +862,26 @@ def formGLM_fullX(core, edges, uniqueProteins, obsGrps, numAAs = 19,
         for g in obsGrps.keys():
             grpStart = rowNum
             for p in obsGrps[g]:
-                core_seq = core[p]
-                x = []
-                for i in aa_pos:
-                    cur_x = [0] * numAAs
-                    aa = A2IND[core_seq[i]]
-                    if aa < numAAs:
-                        cur_x[aa] = 1
-                    x += cur_x
-                # For each protein, it has four lines of same X, i.e, four samples for each protein in the logistic regression
-                if modelType == 'classifier':
-                    x = np.tile(x, (4,1))
-                    X[j] = np.concatenate((X[j], x), axis=0)
-                    rowNum += 4
-                elif modelType == 'regressor':
-                    x = np.tile(x, (1,1))
-                    X[j] = np.concatenate((X[j], x), axis=0)
-                    rowNum += 1                    
+                nCores = len(core[p])/coreLen  ##
+                for c in range(nCores):  ##
+                    core_seq = core[p][coreLen*c:coreLen*(c+1)]  ##
+                    x = []
+                    for i in aa_pos:
+                        cur_x = [0] * numAAs
+                        aa = A2IND[core_seq[i]]
+                        if aa < numAAs:
+                            cur_x[aa] = 1
+                        x += cur_x
+                    # For each protein, it has four lines of same X, 
+                    # i.e, four samples for each protein in the logistic regression
+                    if modelType == 'classifier':
+                        x = np.tile(x, (4,1))
+                        X[j] = np.concatenate((X[j], x), axis=0)
+                        rowNum += 4
+                    elif modelType == 'regressor':
+                        x = np.tile(x, (1,1))
+                        X[j] = np.concatenate((X[j], x), axis=0)
+                        rowNum += 1                    
             grpEnd = rowNum-1
             grpInd[g] = (grpStart, grpEnd)
     return X, grpInd
@@ -1190,8 +1198,6 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd,
     else:
         np.random.seed()
 
-    mWid = len(edges.keys())
-
     # Initialize starting positions and orientations for each protein
     # start: a dictionary {"str protein": int start position}
     # rev: a dictionary {"str protein": binary orientation}
@@ -1206,8 +1212,10 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd,
         start = nb_S[nb_opt]
         rev = nb_O[nb_opt]
     else:
-        start, rev = initStarts(uniqueProteins, pwms, mWid, fixedStarts = fixedStarts)
+        start, rev = initStarts(uniqueProteins, pwms, len(edges.keys()), fixedStarts = fixedStarts)
 
+
+    ##### Good up to here ####
 
     init_model = form_model(fullX, uniqueProteins, pwms, start, rev)
     init_PC_agree = computePC_agree(init_model, uniqueProteins, pwms, start, rev, fullX)
@@ -1321,16 +1329,18 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd,
     """ Runs the gibbsSampler routine K times using parallel executions
     """
     
-    '''
+    #'''
+    ### For trouble-shooting (runs only one chain)
     maxiter = MAXITER
     res = [gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX,
                           grpInd, maxiter, np.random.randint(0,1e9), 
                           verbose, orientKey, orient, fixedStarts, 
                           INIT_ORACLE)]
     return res
-    '''
-
     #'''
+
+    '''
+    ### Runs multiple chains in parallel
     ncpus = multiprocessing.cpu_count()-1
     maxiter = MAXITER
     print("we will run", maxiter, " iterations.")
@@ -1343,7 +1353,7 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd,
         procs.append(p.apply_async(gibbsSampleGLM, args=args))
     res = [x.get() for x in procs]
     return res
-    #'''
+    '''
 
 def getFixedStarts_fromStructures(pwms, edges_hmmPos, core,
                                   verbose = False, outfile = None):
@@ -1580,7 +1590,7 @@ def getPrecomputedInputs():
 def getPrecomputedInputs_zfC2H2(rescalePWMs = True):
     # Get the necesarry precomputed information for the C2H2-ZF inputs
     # Assumes an input table mapping protein IDs to ordered arrays of domains
-    # subsetted to the appropriate base-contacting positions.
+    # subsetted to the appropriate base-contacting positions according to HMMER v2.3.2.
 
     # Get the PWM info
     # Get the motif IDs of interest
@@ -1643,7 +1653,6 @@ def getPrecomputedInputs_zfC2H2(rescalePWMs = True):
 
 def main():
 
-    mWid = MWID
     np.random.seed(RAND_SEED)
 
     if ORIGINAL_INPUT_FORMAT:
@@ -1663,10 +1672,13 @@ def main():
             print edges_hmmPos
             print aaPosList
             """
-    assert MWID == len(edges.keys())
+    print edges
+    print edges_hmmPos
+    mWid = len(edges.keys())
+    assert MWID == mWid
 
     """
-    # Output directories used in manuscript
+    # Output directories used in homedomain portion of manuscript
     if EXCLUDE_TEST:
         dir = "../results/cisbp-chu/"
     else:
@@ -1706,14 +1718,20 @@ def main():
         fout.write('\n'.join(['%s\t%s' %(k,core[k]) \
                              for k in sorted(core.keys())]))
 
-    print pwms['T094828_2.00']
     uniqueProteins = pwms.keys()
+    if DOMAIN_TYPE == 'zf-C2H2':
+        multiDomain = True
+    else:
+        multiDomain = False
     fullX, grpInd = formGLM_fullX(core, edges, uniqueProteins, obsGrps)
+    print fullX[0].shape
+    print len(grpInd)
+    print aaPosList
 
-    """    
+    #"""    
     #Sanity checks and setting up correct fixed unique protein ordering 
     for g in obsGrps.keys():
-        assert len(obsGrps[g])*4 == grpInd[g][1]-grpInd[g][0]+1
+        assert len(obsGrps[g])*4*(len(g)/len(aaPosList)) == grpInd[g][1]-grpInd[g][0]+1
     uprots = []
     for grp in obsGrps.keys():
         uprots += obsGrps[grp]
@@ -1721,9 +1739,14 @@ def main():
     # So that uniqueProteins is in the same order as obsGrps keys
     uniqueProteins = uprots
 
+    #"""
     # Removed computation to save space for the GitHub
     #fixedStarts = getFixedStarts_fromStructures(pwms, edges_hmmPos, core, outfile = dir+'/fixedStarts.txt')
-    fixedStarts = readSeedAlignment(SEED_FILE)
+    
+    #### NOTE: Still need to compute fixed starts for the C2H2-ZFs
+    if DOMAIN_TYPE == 'homeodomain':
+        fixedStarts = readSeedAlignment(SEED_FILE)
+    
     print("We are using %d proteins in the gibbs sampling." %len(uniqueProteins))
 
     if RUN_GIBBS:
@@ -1756,7 +1779,7 @@ def main():
         print("Writing results in ", dir+'result.pickle')
         with open(dir+'result.pickle', 'wb') as f:
             pickle.dump(res, f)
-    """
+    #"""
 
 if __name__ == '__main__':
     main()
