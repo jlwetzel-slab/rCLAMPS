@@ -688,8 +688,10 @@ def initStarts(uniqueProteins, pwms, mWid, nDoms, fixedStarts = {}):
 # Kaiqian's revised functions for GLM #
 #######################################
 
+
 def useUniqueProteins(obsGrps):
     """
+    NOTE:  NOT CURRENTLY USED
     Function for extracting unique proteins from obsGrps.
     Since several proteins have the same amino acid sequences, they are stored in the obsGrps,
     where obsGrps is a dictionary such as {'EQKTCGNKNQR': ['Six3', 'Six6'], ...}. To improve
@@ -969,8 +971,10 @@ def formGLM_Y(keysToUse, nDoms):
 
 def formGLM_trainW(pwms, uniqueProteins, nDoms, start, rev, modelType = 'classifier'):
     """
-    Since we are using weighted multinomial logsitic regression, this function creates weights for
-    trained proteins based on given position weight matrix, starting position, and orientation for each protein.
+    Since we are using weighted multinomial logsitic regression, using only a single instance of each
+    domain-DNA interface observation for each possible base outcome, this function creates weights for
+    each row of the covariate matrix X based on given position weight matrix, starting position, 
+    and orientation each PWM relative to the contact map.
     :param pwms: a dictionary of {"protein": position weight matrix}
     :param uniqueProteins: an array of unique proteins
     :param S: a dictionary {"protein": starting position}
@@ -990,12 +994,14 @@ def formGLM_trainW(pwms, uniqueProteins, nDoms, start, rev, modelType = 'classif
         # Allows arrayed multi-domain proteins with overlaps
         for d in range(nDoms[protein]):
             for j in range(MWID):
+                #print protein, start[protein], d, j, j+start[protein]+d*(MWID-RIGHT_OLAP), pwm[j+start[protein]+d*(MWID-RIGHT_OLAP)][:]
                 if d == 0:
                     weights[protein][j] = pwm[j+start[protein]][:]
                 else:
                     weights[protein][j] = \
                         np.concatenate((weights[protein][j],
                                         pwm[j+start[protein]+d*(MWID-RIGHT_OLAP)][:]), axis = None)
+        #print protein, nDoms[protein], len(weights[protein][0])
         # For single domain case only(above is more general)
         #for j in range(MWID):
         #    weights[protein][j] = pwm[j+start[protein]][:]
@@ -1010,7 +1016,7 @@ def formGLM_trainW(pwms, uniqueProteins, nDoms, start, rev, modelType = 'classif
             W[j] = W[j][1:len(W[j])]
             # normalize weights for each W[j]
             W[j] = W[j] / sum(W[j])
-            print len(W[j])
+            #print len(W[j])
 
     return W
 
@@ -1217,30 +1223,21 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
     else:
         start, rev = initStarts(uniqueProteins, pwms, len(edges.keys()), nDoms, fixedStarts = fixedStarts)
 
-    #print [(start[x],rev[x], nDoms[x], len(pwms[x])) for x in pwms.keys()]
-
     init_model = form_model(fullX, uniqueProteins, nDoms, pwms, start, rev)
 
-    ##### Good up to here ####
-    ## May need to test these functions for multidomain version??
-    init_PC_agree = computePC_agree(init_model, uniqueProteins, pwms, start, rev, fullX)
-    init_mse = compute_MSE(init_model, uniqueProteins, pwms, start, rev, fullX)
-
-    """
-    # Alternate between model construction and latent variable updates
-    # until the latent variables cease to change
-    # converged = False
     nIters = 0
     if verbose:
         print("nIters: %d" %nIters)
         print("\tstarts:", start.values()[:20])
         print("\trevers:", rev.values()[:20])
 
+    # Alternate between model construction and latent variable updates
+    # until the latent variables cease to change
     bestStart, bestRev, bestll = deepcopy(start), deepcopy(rev), -1e30
     llsAll = [bestll]
     converged = False
+    """
     while nIters < maxIters and not converged:
-        #print "%d iterations" %nIters
         
         valuesChanged = 0
         # For each hold out group, compute GLM model based on all proteins except the hold out
@@ -1285,11 +1282,8 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
             print("--revers:", rev.values()[:20])
             print("--loglik", ll)
             print("--valuesChanged: ", valuesChanged)
-            agree = computePC_agree(model, uniqueProteins, pwms, start, rev, fullX)
-            print("--perPositionFracAgree:")
-            for pos in sorted(agree.keys()):
-                print('\tpos%d: %f' %(pos, agree[pos]))
-        
+
+        # Check for improvement in likelihood function        
         if ll > bestll:
             bestll = ll
             bestStart = start
@@ -1307,29 +1301,10 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
             converged = True
         llsAll.append(ll)
 
-    start = bestStart
-    rev = bestRev
-    ll = bestll
-
-    final_model = form_model(fullX, uniqueProteins, nDoms, pwms, start, rev)
-    PC_agree = computePC_agree(final_model, uniqueProteins, pwms, start, rev, fullX)
-    final_mse = compute_MSE(final_model, uniqueProteins, pwms, start, rev, fullX)
-
-    # Check whether the orientation of the key PWM is backwards
-    reorient = False
-    # No longer necessary bc I am fixing the orientaiton of KEY PWM
-    #if rev[orientKey] != orient:
-    #    reorient = True
-
-    final_model = form_model(fullX, uniqueProteins, nDoms, pwms, start, rev)
-    PC_agree = computePC_agree(final_model, uniqueProteins, pwms, start, rev, fullX)
-
-    return {'start': start, 'rev': rev, 'll': ll, "reorient": reorient,
-            "PC_agree": PC_agree, "init_PC_agree": init_PC_agree, 
-            "score": sum(PC_agree.values()), "init_mse": init_mse, 
-            "final_mse": final_mse, "final_model": final_model}
     """
-    return None
+    final_model = form_model(fullX, uniqueProteins, nDoms, pwms, start, rev)
+
+    return {'start': bestStart, 'rev': bestRev, 'll': bestll, 'reorient': False,'final_model': final_model}
 
 def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
              verbose = False, kSamps = 25, orientKey = None, orient = None, 
@@ -1751,7 +1726,6 @@ def main():
     # So that uniqueProteins is in the same order as obsGrps keys
     uniqueProteins = uprots
 
-    #"""
     # Removed computation to save space for the GitHub
     #fixedStarts = getFixedStarts_fromStructures(pwms, edges_hmmPos, core, outfile = dir+'/fixedStarts.txt')
     
@@ -1776,29 +1750,14 @@ def main():
                        orient = orient, fixedStarts = fixedStarts)
         print("Ran in %.2f seconds" %(time.time()-startTime))
         ll = [x['ll'] for x in res]
-        score = [x['ll'] for x in res]
-        PC_agree = [x['PC_agree'] for x in res]
-        init_PC_agree = [x['init_PC_agree'] for x in res]
-        init_mse = [x['init_mse'] for x in res]
-        final_mse = [x['final_mse'] for x in res]
         reorient = [x['reorient'] for x in res]
         start = [x['start'] for x in res]
-        rev = [x['rev'] for x in res]
-        opt = np.argmax(score)
-        print("scores are", score)
-        print("opt is", opt)
-        print("initial score is", sum(init_PC_agree[opt].values()))
-        print("final score is", sum(PC_agree[opt].values()))
-        print("initial mse is", sum(init_mse[opt].values()))
-        print("final mse is", sum(final_mse[opt].values()))
-        np.savetxt(dir+"/init_PC_agree.out", init_PC_agree[opt].values())
-        np.savetxt(dir+"/final_PC_agree.out", PC_agree[opt].values())
-        np.savetxt(dir+"/init_mse.out", init_mse[opt].values())
-        np.savetxt(dir+"/final_mse.out", final_mse[opt].values())
+        opt = np.argmax(ll)
+        print("optimal chain was:", opt)
+        print("optimal chain's score was:", ll[opt])
         print("Writing results in ", dir+'result.pickle')
         with open(dir+'result.pickle', 'wb') as f:
             pickle.dump(res, f)
-    #"""
 
 if __name__ == '__main__':
     main()
