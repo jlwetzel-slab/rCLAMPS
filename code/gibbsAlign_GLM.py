@@ -1236,7 +1236,9 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
     bestStart, bestRev, bestll = deepcopy(start), deepcopy(rev), -1e30
     llsAll = [bestll]
     converged = False
+    
     """
+    ### GOOD TO HERE for multidomain version###
     while nIters < maxIters and not converged:
         
         valuesChanged = 0
