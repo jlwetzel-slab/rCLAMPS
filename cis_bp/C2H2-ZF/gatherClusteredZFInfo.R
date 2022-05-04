@@ -82,9 +82,23 @@ g <- ggplot(doms[,.SD[1], by = 'prot'], aes(x = clustLen, y = motifLen, group = 
 ggsave(plot = g, file = '0_nZFs_V_motifLen_removeTooShort.pdf', width = 5, height = 5)
 
 # Keep the subsetted domain and motif tables for organizing inputs to gibbs_GLM.py
+arraySeqs <- doms[,.(arraySeq = paste(coreSeq, collapse = '')), by = 'prot']
+doms <- merge(doms, arraySeqs, by = 'prot')
+doms <- doms[order(prot, targStart)]
 write.table(doms, 'prot_seq_fewZFs_hmmerOut_clusteredOnly_removeTooShort.txt',sep = '\t', quote = FALSE,row.names = FALSE)
 write.table(motifs, 'motifTable_mostRecent_fewZFs_clusteredOnly_removeTooShort.txt',sep = '\t', quote = FALSE,row.names = FALSE)
 
 # Which are the really long motifs??
 longMotifs <- motifs[TF_ID %in% doms[motifLen > 4*clustLen]$prot]
 longMotifs.doms <- doms[motifLen > 4*clustLen]
+
+# How many distinct arrays are there (in terms of base-contacting positions)?
+distinctArrays <- doms[,.(nProts = length(unique(prot))), by = 'arraySeq']
+distinctArrays <- distinctArrays[order(-nProts)]
+print(paste("There are", nrow(distinctArrays), "distinct ZF arrays (considering only base-contacting positions)."))
+
+length(sort(table(names(sapply(doms$arraySeq, nchar)))))
+
+# Which motifs have length exactly 3*nZFs + 1?
+
+

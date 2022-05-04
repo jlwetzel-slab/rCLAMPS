@@ -885,11 +885,7 @@ def formGLM_fullX(core, edges, uniqueProteins, obsGrps, numAAs = 19, domainOrder
                     if modelType == 'classifier':
                         x = np.tile(x, (4,1))
                         X[j] = np.concatenate((X[j], x), axis=0)
-                        rowNum += 4
-                    elif modelType == 'regressor':
-                        x = np.tile(x, (1,1))
-                        X[j] = np.concatenate((X[j], x), axis=0)
-                        rowNum += 1                    
+                        rowNum += 4             
             grpEnd = rowNum-1
             grpInd[g] = (grpStart, grpEnd)
     return X, grpInd
@@ -948,12 +944,7 @@ def formGLM_testX(X, index, modelType = 'classifier'):
         testX = {}
         for j in range(MWID):
             testX[j] = X[j][(4*index):(4*index+4),]
-        return testX
-    elif modelType == 'regressor':
-        testX = {}
-        for j in range(MWID):
-            testX[j] = X[j][index:index+1,]
-        return testX        
+    return testX  
 
 
 def formGLM_Y(keysToUse, nDoms):
@@ -1714,7 +1705,8 @@ def main():
     # Form the complete X matrix
     fullX, grpInd = formGLM_fullX(core, edges, uniqueProteins, obsGrps, domainOrder = domainOrder)
     #print fullX[0][0:5,:]
-    print fullX[0].shape
+    for j in fullX.keys():
+        print fullX[j].shape
     print len(grpInd)
     print aaPosList
 
