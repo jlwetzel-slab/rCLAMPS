@@ -1341,7 +1341,7 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
     """ Runs the gibbsSampler routine K times using parallel executions
     """
     
-    #'''
+    '''
     ### For trouble-shooting (runs only one chain)
     maxiter = MAXITER
     res = [gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX,
@@ -1349,9 +1349,9 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
                           verbose, orientKey, orient, fixedStarts, 
                           INIT_ORACLE)]
     return res
-    #'''
-
     '''
+
+    #'''
     ### Runs multiple chains in parallel
     ncpus = multiprocessing.cpu_count()-1
     maxiter = MAXITER
@@ -1774,7 +1774,7 @@ def main():
         print("Running %d markov chains ..." %N_CHAINS)
         startTime = time.time()
         res = runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
-                       verbose = True, kSamps = N_CHAINS, orientKey = orientKey, 
+                       verbose = False, kSamps = N_CHAINS, orientKey = orientKey, 
                        orient = orient, fixedStarts = fixedStarts)
         print("Ran in %.2f seconds" %(time.time()-startTime))
         ll = [x['ll'] for x in res]
