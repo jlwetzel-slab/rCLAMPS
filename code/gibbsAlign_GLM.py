@@ -6,7 +6,7 @@
 # an approximately optimal model is found using MCMC (Gibbs sampling) to alternate between 
 # estimating the optimal ll-model paramters with a PWM-protein pair held out and sampling a 
 # new offset and orientation for the held out pair, given the current optimal model, cycling
-# through all pairs.  This implementation allows for block sampling for similar proteins.
+# through all pairs.  This implementation allows block sampling for similar proteins.
 
 from runhmmer import *
 from matAlignLib import *
@@ -31,17 +31,18 @@ from sklearn.metrics import mean_squared_error
 from scipy import sparse
 from scipy.stats import multinomial
 
-DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
-#OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
-OUTPUT_DIRECTORY = '../my_results/zf-C2H2/'  # Set to any output directory you want
-ORIGINAL_INPUT_FORMAT = False        # Set to True for reproducion of manuscript model
+#DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
+#OUTPUT_DIRECTORY = '../my_results/zf-C2H2/'  # Set to any output directory you want
+DOMAIN_TYPE = 'homeodomain' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
+OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
+ORIGINAL_INPUT_FORMAT = True         # Set to True for reproducion of homeodomain manuscript model
                                      # Set to False to give inputs in format from ../precomputedInputs/ 
 RUN_GIBBS = True                     # Set to False if only want to troubleshoot prior to running Gibbs sampler
 HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
 EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing
-MWID = 4               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
-MULTI_DOMAIN = True    # Set to True if multiple domains per protein instanct (e.g. with zf-C2H2), False otherwise
-if MULTI_DOMAIN and DOMAIN_TYPE == 'zf-C2H2':
+#MWID = 4               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
+MWID = 6
+if DOMAIN_TYPE == 'zf-C2H2':
     RIGHT_OLAP = 1     # Number of 3' bases in contact map overlpping with previous domain instance (if multi-domain) - 1 for zf-C2H2
 else:
     RIGHT_OLAP = 0     # No domain base overlap for single-domain proteins
@@ -931,19 +932,19 @@ def formGLM_trainX(X, startInd_ho, endIndex_ho):
     return trainX
 
 
-def formGLM_testX(X, index, modelType = 'classifier'):
+def formGLM_testX(X, startInd, endInd, modelType = 'classifier'):
     """
     Function for extracting X part from a full X just for hold out protein.
     :param X: a full X
-    :param index: the index of the hold out protein in the unique protein list
+    :param index: the index of the hold out domain(s) in the original X matrix
     :return: a dictionary. Each base position j corresponds to the X part for hold out protein.
-    X[j] is a 4 by E_j*20 matrix, where E_j the number of amino acids contact to the jth base position.
+    X[j] is a 4 by E_j*19 matrix, where E_j the number of amino acids contact to the jth base position.
     """
 
     if modelType == 'classifier':
         testX = {}
         for j in range(MWID):
-            testX[j] = X[j][(4*index):(4*index+4),]
+            testX[j] = X[j][startInd:(endInd+1),]
     return testX  
 
 
@@ -953,7 +954,6 @@ def formGLM_Y(keysToUse, nDoms):
     :param keysToUse: an array of proteins used
     :return: an array of repeated [0,1,2,3]. And note that len(Y)/4 is the number of proteins used.
     """
-    n = len(keysToUse)
     Y = {}
     for j in range(MWID):
         Y[j] = np.array([0,1,2,3] * np.sum([nDoms[k] for k in keysToUse]))
@@ -1062,7 +1062,6 @@ def computeGLMLoglikelihood(testX, testW, model):
     ll: log-likelihood for the given hold out protein and given W, which is based on certain
     starting position and orientation.
     """
-
     eps = 1e-30
     ll = [0] * MWID
     for j in range(MWID):
@@ -1085,7 +1084,7 @@ def compute_pearson_corr(testX, testW, model, corr_weight):
         corrs[j] = scipy.stats.pearsonr(pred[0], testW[j])[0]
     return np.dot(corrs, corr_weight)
 
-def sampleStartPosGLM(testX, uniqueProteins, index, pwms, edges, model):
+def sampleStartPosGLM(testX, uniqueProteins, index, nDoms, pwms, edges, model):
     """
     Function for updating the starting position and orientation for the holdout protein
     based on max log-likelihood computed.
@@ -1106,12 +1105,32 @@ def sampleStartPosGLM(testX, uniqueProteins, index, pwms, edges, model):
     mWid = len(edges.keys())
     lls = []
     for r in range(2):
+        # All allowable starting positions for multidomain proteins
+        for s in range(len(pwm)-((mWid-RIGHT_OLAP)*nDoms[holdout]+RIGHT_OLAP) + 1):
+            start_ho = {holdout:s}
+            rev_ho = {holdout:r}
+            testW = formGLM_trainW(pwms, [holdout], nDoms, start_ho, rev_ho)
+            #print testX[0].shape, testW[0].shape
+            testX_dom, testW_dom = {}, {}
+            ll = 0
+            for i in range(nDoms[holdout]):
+                for j in range(mWid):
+                    # Each domain in multidom protein contributes equally to likelihood
+                    testX_dom[j] = testX[j][i*4:(i+1)*4,]
+                    testW_dom[j] = testW[j][i*4:(i+1)*4,]/sum(testW[j][i*4:(i+1)*4,])
+                ll += computeGLMLoglikelihood(testX_dom, testW_dom, model)
+            lls.append(ll)    
+
+    """
+    # Old version ... does not account for proteins with multiple domains
+    for r in range(2):
         for s in range(seqWid-mWid+1):
             start = {holdout:s}
             rev = {holdout:r}
             testW = formGLM_testW(pwms, index, uniqueProteins, start, rev)
             ll = computeGLMLoglikelihood(testX, testW, model)
             lls.append(ll)
+    """
 
     # lls = np.exp(np.array(lls-max(lls))/SAMPLE*5)
     lls = np.array(lls)
@@ -1228,46 +1247,64 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
     llsAll = [bestll]
     converged = False
     
-    """
     ### GOOD TO HERE for multidomain version###
     while nIters < maxIters and not converged:
+    #while nIters < 1:
         
         valuesChanged = 0
         # For each hold out group, compute GLM model based on all proteins except the hold out
         # group, then update the s, o for each held out protein using the GLM model obtained
+        #for grpID in obsGrps.keys():
+        #print obsGrps.keys()
         for grpID in obsGrps.keys():
             
             # Train on all but the held out group
             startInd_ho, endIndex_ho = grpInd[grpID]
-            trainProteins = uniqueProteins[:startInd_ho/4] + \
-                uniqueProteins[endIndex_ho/4+1:]
+            trainProteins, proteins_ho = [], []
+            for prot in uniqueProteins:
+                if prot in obsGrps[grpID]:
+                    proteins_ho += [prot]
+                else:
+                    trainProteins += [prot]
+            #print grpID, len(trainProteins), len(proteins_ho)
             trainX = formGLM_trainX(fullX,startInd_ho,endIndex_ho)
             trainY = formGLM_Y(trainProteins, nDoms)
             trainW = formGLM_trainW(pwms, trainProteins, nDoms, start, rev)
             model = createGLMModel(trainX, trainY, trainW)
 
             # Sample a new start/orientation for each held out protein 
-            index_p = startInd_ho/4
-            for p in obsGrps[grpID]:
+            currInd = startInd_ho
+            for p in proteins_ho:
+                nextInd = currInd + 4*nDoms[p]
                 if p in fixedStarts.keys():
-                    index_p += 1
+                    currInd = nextInd
                     continue
-                testX = formGLM_testX(fullX, index_p)
-                s, r, lls = sampleStartPosGLM(testX,uniqueProteins,index_p, 
-                                              pwms, edges, model)
+                testX = formGLM_testX(fullX, currInd, nextInd-1)
+                s, r, lls = sampleStartPosGLM(testX,uniqueProteins,uniqueProteins.index(p),
+                                              nDoms,pwms, edges, model)
                 if s != start[p] or r != rev[p]:
                     valuesChanged += 1
                 start[p] = s
                 rev[p] = r
-                index_p += 1
+                currInd = nextInd
 
         nIters += 1
 
         ll = 0
-        for i, p in enumerate(uniqueProteins):
-            testX = formGLM_testX(fullX, i)
-            testW = formGLM_testW(pwms, i, uniqueProteins, start, rev)
-            ll += computeGLMLoglikelihood(testX, testW, model)
+        currInd = 0
+        # Cycle through all the domains to compute total GLM log-likelihood
+        for p in uniqueProteins:
+            nextInd = currInd + 4*nDoms[p]
+            testX = formGLM_testX(fullX, currInd, nextInd-1)
+            testW = formGLM_trainW(pwms, [p], nDoms, start, rev)
+            for i, ind in enumerate(range(currInd, nextInd, 4)):
+                testX_dom = formGLM_testX(fullX, ind, ind+4-1)
+                testW_dom = {}
+                for j in range(MWID):
+                    # Each domain in a multidomain protein contributes equally to the likelihood function
+                    testW_dom[j] = testW[j][i*4:(i+1)*4,]/sum(testW[j][i*4:(i+1)*4,])
+                ll += computeGLMLoglikelihood(testX_dom, testW_dom, model)
+            currInd = nextInd
 
         if verbose:
             print("nIters: %d" %nIters)
@@ -1294,7 +1331,6 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
             converged = True
         llsAll.append(ll)
 
-    """
     final_model = form_model(fullX, uniqueProteins, nDoms, pwms, start, rev)
 
     return {'start': bestStart, 'rev': bestRev, 'll': bestll, 'reorient': False,'final_model': final_model}
@@ -1696,10 +1732,8 @@ def main():
 
     uniqueProteins = pwms.keys()
     if DOMAIN_TYPE == 'zf-C2H2':
-        multiDomain = True
         domainOrder = -1
     else:
-        multiDomain = False
         domainOrder = 1
 
     # Form the complete X matrix
@@ -1740,7 +1774,7 @@ def main():
         print("Running %d markov chains ..." %N_CHAINS)
         startTime = time.time()
         res = runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
-                       verbose = False, kSamps = N_CHAINS, orientKey = orientKey, 
+                       verbose = True, kSamps = N_CHAINS, orientKey = orientKey, 
                        orient = orient, fixedStarts = fixedStarts)
         print("Ran in %.2f seconds" %(time.time()-startTime))
         ll = [x['ll'] for x in res]
