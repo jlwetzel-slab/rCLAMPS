@@ -1365,7 +1365,7 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
         procs.append(p.apply_async(gibbsSampleGLM, args=args))
     res = [x.get() for x in procs]
     return res
-    '''
+    #'''
 
 def getFixedStarts_fromStructures(pwms, edges_hmmPos, core,
                                   verbose = False, outfile = None):
