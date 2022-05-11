@@ -1,0 +1,6 @@
+NOTE:  This 'result.pickle' file contains the same 'final_model' as
+'../results/cisbp-chuAll/structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50.pickle'
+which was used to generate the reported results corresponding to Figure 2 in the article. 
+It was generated after updating the code to generalize for multidomain proteins (e.g., the C2H2-ZFs) 
+to test/ensure that the update did not cause bugs or unforseen changes to the results reported.  
+Correspondingly, the tables and figures in this directory were generated based on 'result.pickle'.
