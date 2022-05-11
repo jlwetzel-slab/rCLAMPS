@@ -38,7 +38,7 @@ MWID = 6  # Number of base positions in the PDSIM
 RESCALE_PWMS = True
 EXCLUDE_TEST = False
 MAKE_LOGOS = False
-ADD_RESIDUES = True         # if True include additional residues from Christensen et al. (2012)
+ADD_RESIDUES = False         # if True include additional residues from Christensen et al. (2012)
 
 def makePCCtable(exp, pred, core, fname):
     # Compute the per-position pearson correlation coefficients
@@ -66,11 +66,13 @@ def main():
         dirStem = '../results/cisbp-chuAll/'
         labStem = 'cisbp-chuAll/'
 
-    mainOutDir = dirStem+'structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50'
+    #mainOutDir = dirStem+'structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50'
+
+    mainOutDir = '../my_results/allHomeodomainProts/'
 
     # Obtain Model
-    outLabel = labStem+'structFixed1_grpHoldout_multinom_chain100maxIter15scaled50'
-    filename = dirStem+'structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50.pickle'
+    #filename = dirStem+'structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50.pickle'
+    filename = mainOutDir+'result.pickle'
     with open(filename) as f:
         res = pickle.load(f)
     score = [x['ll'] for x in res]
@@ -95,13 +97,17 @@ def main():
     print edges
     print edges_hmmPos
     print aaPosList
-    print trainCores
+    #print trainCores
 
     obsGrps = assignObsGrps(trainCores, by = OBS_GRPS)
     uprots = []
     for grp in obsGrps.keys():
         uprots += obsGrps[grp]
     uniqueProteins = uprots  
+
+    nDoms = {}
+    for p in uniqueProteins:
+        nDoms[p] = len(trainCores[p])/len(aaPosList)
 
     # Create the predicted logos for the corresponding core sequences
     # while holding out the core seq grps
@@ -112,14 +118,17 @@ def main():
     startTime = time.time()
     for k, coreSeq in enumerate(grpInd.keys()):
         startInd_ho, endIndex_ho = grpInd[coreSeq]
-        trainProteins = uniqueProteins[:startInd_ho/4] + \
-            uniqueProteins[endIndex_ho/4+1:]
-        testProteins = uniqueProteins[startInd_ho/4:endIndex_ho/4+1]
+        trainProteins, testProteins = [], []
+        for prot in uniqueProteins:
+            if prot in obsGrps[coreSeq]:
+                testProteins += [prot]
+            else:
+                trainProteins += [prot]
         trainX = formGLM_trainX(fullX,startInd_ho,endIndex_ho)
-        trainY = formGLM_Y(trainProteins)
-        trainW = formGLM_trainW(trainPWMs, trainProteins, start, rev)
+        trainY = formGLM_Y(trainProteins, nDoms)
+        trainW = formGLM_trainW(trainPWMs, trainProteins, nDoms, start, rev)
         model_ho = createGLMModel(trainX, trainY, trainW)
-        testX = formGLM_testX(fullX, startInd_ho/4)
+        testX = formGLM_testX(fullX, startInd_ho, startInd_ho + 4)
         pwm = []
         for j in range(MWID):
             prediction = model_ho[j].predict_proba(testX[j])[0].tolist()
@@ -156,7 +165,6 @@ def main():
             os.makedirs(logoDir)
         makeAllLogos(pred_pwms, trainCores, logoDir)
         print("Ran in %.2f seconds" %(time.time()-startTime))
-    #"""
 
 if __name__ == '__main__':
     main()

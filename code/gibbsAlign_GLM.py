@@ -1155,38 +1155,6 @@ def form_model(fullX, uniqueProteins, nDoms, pwms, start, rev):
     model = createGLMModel(X, Y, W)
     return model
 
-# debug function
-def computePC_agree(model, uniqueProteins, pwms, start, rev, fullX):
-    align_match = {}
-    for j in range(MWID):
-        match = 0
-        for i, p in enumerate(uniqueProteins):
-            testX = formGLM_testX(fullX, i)
-            pred = model[j].predict_proba(testX[j])
-            pwm = pwms[p]
-            if rev[p] == 1:
-                pwm = matrix_compl(pwm)
-            true = pwm[j+start[p]][:]
-            if scipy.stats.pearsonr(pred[0], true)[0] >= 0.5:
-                match += 1
-        align_match[j] = match/float(len(uniqueProteins))
-    return align_match
-
-def compute_MSE(model, uniqueProteins, pwms, start, rev, fullX):
-    mse_dic = {}
-    for j in range(MWID):
-        mse = 0
-        for i, p in enumerate(uniqueProteins):
-            testX = formGLM_testX(fullX, i)
-            pred = model[j].predict_proba(testX[j])
-            pwm = pwms[p]
-            if rev[p] == 1:
-                pwm = matrix_compl(pwm)
-            true = pwm[j+start[p]][:]
-            mse += sklearn.metrics.mean_squared_error(true, pred[0])
-        mse_dic[j] = mse/float(len(uniqueProteins))
-    return mse_dic
-
 def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
                    maxIters=25, randSeed=None, verbose=False, orientKey=None, 
                    orient=None, fixedStarts = {}, init_oracle=False):
