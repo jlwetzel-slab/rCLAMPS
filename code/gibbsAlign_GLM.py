@@ -12,36 +12,27 @@ from runhmmer import *
 from matAlignLib import *
 from pwm import makeNucMatFile, makeLogo, rescalePWM
 from copy import deepcopy
-import numpy as np
-import multiprocessing
+from decimal import Decimal
 from getHomeoboxConstructs import getUniprobePWMs, getFlyFactorPWMs
 from getHomeoboxConstructs import parseNoyes08Table, makeMatchStateTab
 from getHomeoboxConstructs import readFromFasta, writeToFasta, subsetDict
 from moreExp_veri import getPWM, getPWM_barrera
-import time
-import pickle
-import argparse
-import scipy.stats
-import sklearn.metrics
-import math
-from decimal import Decimal
-from scipy.stats import dirichlet
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import mean_squared_error
 from scipy import sparse
-from scipy.stats import multinomial
+import numpy as np
+import time, pickle, argparse, math, multiprocessing
 
-#DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
-#OUTPUT_DIRECTORY = '../my_results/zf-C2H2/'  # Set to any output directory you want
-DOMAIN_TYPE = 'homeodomain' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
-OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
-ORIGINAL_INPUT_FORMAT = True         # Set to True for reproducion of homeodomain manuscript model
+DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
+OUTPUT_DIRECTORY = '../my_results/zf-C2H2/'  # Set to any output directory you want
+#DOMAIN_TYPE = 'homeodomain' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
+#OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
+ORIGINAL_INPUT_FORMAT = False         # Set to True for reproducion of homeodomain manuscript model
                                      # Set to False to give inputs in format from ../precomputedInputs/ 
 RUN_GIBBS = True                     # Set to False if only want to troubleshoot prior to running Gibbs sampler
 HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
 EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing
-#MWID = 4               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
-MWID = 6
+MWID = 4               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
+#MWID = 6
 if DOMAIN_TYPE == 'zf-C2H2':
     RIGHT_OLAP = 1     # Number of 3' bases in contact map overlpping with previous domain instance (if multi-domain) - 1 for zf-C2H2
 else:
@@ -685,29 +676,6 @@ def initStarts(uniqueProteins, pwms, mWid, nDoms, fixedStarts = {}):
             start[k] = fixedStarts[k]['start']
     return start, rev
 
-#######################################
-# Kaiqian's revised functions for GLM #
-#######################################
-
-
-def useUniqueProteins(obsGrps):
-    """
-    NOTE:  NOT CURRENTLY USED
-    Function for extracting unique proteins from obsGrps.
-    Since several proteins have the same amino acid sequences, they are stored in the obsGrps,
-    where obsGrps is a dictionary such as {'EQKTCGNKNQR': ['Six3', 'Six6'], ...}. To improve
-    the efficiency of fitting the GLM model, we only consider one protein from same amino acid
-    sequence group. This function extracts proteins with different amino acid sequences by simply
-    using the first protein in each group.
-    :param obsGrps: a dictionary {'amino acid sequence': [an array of proteins]}.
-                    e.g.: {'EQKTCGNKNQR': ['Six3', 'Six6'], ...}.
-    :return: an array of unique proteins that will be used in fitting the GLM model.
-    """
-    uniqueProteins = []
-    for key in obsGrps.keys():
-        uniqueProteins.append(obsGrps[key][0])
-    return uniqueProteins
-
 def getTrainPairsAndInfo(rescalePWMs = False, excludeTestSet = True, 
                          addResidues = False):
     # Returns training pwms and core seqs along with info about the
@@ -832,9 +800,6 @@ def getTestProtsAndPWMs(testProtNames, rescalePWMs = False, addResidues = False)
     [subsetDict(x, keep) for x in [pwms, core, full]]   
 
     return pwms, core, full
-
-
-###################################
 
 def formGLM_fullX(core, edges, uniqueProteins, obsGrps, numAAs = 19, domainOrder = 1,
                   modelType = 'classifier'):
@@ -1073,16 +1038,7 @@ def computeGLMLoglikelihood(testX, testW, model):
         sample = [int(round(x)) for x in testW[j]*n]
         ll[j] = np.dot(np.log(prediction), sample)
 
-    return sum(ll)  
-
-def compute_pearson_corr(testX, testW, model, corr_weight):
-    # compute pearson correlation between predicted pwm and pwm given testW (given s and o) for each position
-    # weighted sum up MWID pearson correlations
-    corrs = [0]*MWID
-    for j in range(MWID):
-        pred = model[j].predict_proba(testX[j])
-        corrs[j] = scipy.stats.pearsonr(pred[0], testW[j])[0]
-    return np.dot(corrs, corr_weight)
+    return sum(ll)
 
 def sampleStartPosGLM(testX, uniqueProteins, index, nDoms, pwms, edges, model):
     """
@@ -1214,16 +1170,11 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
     bestStart, bestRev, bestll = deepcopy(start), deepcopy(rev), -1e30
     llsAll = [bestll]
     converged = False
-    
-    ### GOOD TO HERE for multidomain version###
     while nIters < maxIters and not converged:
-    #while nIters < 1:
         
         valuesChanged = 0
         # For each hold out group, compute GLM model based on all proteins except the hold out
         # group, then update the s, o for each held out protein using the GLM model obtained
-        #for grpID in obsGrps.keys():
-        #print obsGrps.keys()
         for grpID in obsGrps.keys():
             
             # Train on all but the held out group
@@ -1338,8 +1289,9 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
 def getFixedStarts_fromStructures(pwms, edges_hmmPos, core,
                                   verbose = False, outfile = None):
     '''
-    # NOTE: No longer used due to limited GitHub space for structure files
-    #       Use readSeedAlignment() instead
+    # NOTE: Only used locally due to limited GitHub space for structure files
+    #       Use readSeedAlignment() instead.
+    #       Left here for reproducibility of homeodomain alignments used in manuscript
     Extracts the correct start and orientation within pwms for those with
     corresponding core sequences that are represented in the structural data.
     :param pwms: a dictionary {"protein": position weight matrix}
