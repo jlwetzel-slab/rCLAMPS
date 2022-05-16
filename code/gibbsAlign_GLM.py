@@ -69,9 +69,11 @@ else:
         TEST_PROT_FILE = '../precomputedInputs/testProts_chu2012_randSplit.txt'  # protein/PWM pairs from PROT_SEQ_FILE that are reserved for later testing    
     elif DOMAIN_TYPE == 'zf-C2H2':
         PROT_SEQ_FILE = '../precomputedInputs/zf-C2H2/prot_seq_fewZFs_hmmerOut_clusteredOnly_removeTooShort.txt'  # Input protein domain file subsetted to relvant amino acid contacting positions
+        PROT_SEQ_FILE_FFS = '../flyFactorSurvey/enuameh/enuameh_perFinger_processedProtInfo.txt'
         PWM_INPUT_TABLE = '../precomputedInputs/zf-C2H2/pwmTab_fewZFs_clusteredOnly_removeTooShort.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
+        PWM_INPUT_FILE_FFS = '../flyFactorSurvey/enuameh/flyfactor_dataset_A.txt'
         CONTACT_MAP = '../precomputedInputs/zf-C2H2/zf-C2H2_contactMap.txt'  # A contact map for the domain family
-        SEED_FILE = '../precomputedInputs/fixedStarts_homeodomains_all.txt'    # Initial seeds based on structures
+        SEED_FILE = '../flyFactorSurvey/enuameh/enuameh_perFinger_processedProt_startPosInfo.txt'    # Initial seeds based on Enuameh et al. 2013
 
 # Used by various functions - do not change these
 BASE = ['A','C','G','T']
@@ -430,7 +432,6 @@ def getEdgesByStructInfo(fname, aaPos, maxMwid, wtCutBB, wtCutBase,
             edges[bpos].append(aaPosList.index(x))
 
     return edges, edges_hmmPos, aaPosList
-
 
 def getHomeoboxData(dsets, maxMwid, aaPosList = [2,3,5,6,47,50,51,54,55],
                     aposCut = 'cutAApos_X', edgeCut = 'cutEdge_X',
@@ -1448,13 +1449,14 @@ def getFixedStarts_fromStructures(pwms, edges_hmmPos, core,
         fout.close()
     return fixedStarts
 
-def readSeedAlignment(infile):
+def readSeedAlignment(infile, include = set()):
     # Reads table of seed start/orientations (as created by getFixedStarts_fromStructures())
     fixedStarts = {}
     fin = open(infile)
     for line in fin:
         l = line.strip().split()
-        fixedStarts[l[0]] = {'start': int(l[1]), 'rev': int(l[2])}
+        if l[0] in include:
+            fixedStarts[l[0]] = {'start': int(l[1]), 'rev': int(l[2])}
     fin.close()
     return fixedStarts
 
@@ -1519,6 +1521,51 @@ def getPrecomputedInputs():
 
     return pwms, core, full, edges, edges_hmmPos, aaPosList, testProts
 
+def getFlyFactorPWMs_zfC2H2(ffsPWMfile, prots = set(), smooth = 1):
+    # Read the fly factor survey pwms into numpy arrays
+
+    fin = open(ffsPWMfile, 'r')
+    line = fin.readline()
+    pwms = {}
+    while line != '':
+        if line[0] == '>':
+            l = line.strip().split('\t')
+            motif = l[1:]
+            line = fin.readline()
+            if motif.split('_')[0] in prots:
+                prot = motif.split('_')[0]
+            else:
+                continue
+            if prot+'_SOLEXA' in motif:
+                pwm = []
+                while line[0] != '>' and line != '':
+                    pwm.append([int(x)+smooth for x in line.strip().split('\t')])
+                    line = fin.readline()
+                pwms[prot] = np.array(pwm)
+            else:
+                continue
+    fin.close()
+
+    # Normalize the motifs
+    for p in pwms.keys():
+        for i in pwms[p]:
+            pwms[i] = pwms[i]/pwms[i].sum()
+    return pwms
+
+def getProteinInfo_zfC2H2_FFS(infile):
+    core = {}
+    fin = open(infile, 'r')
+    fin.readline()
+    for line in fin:
+        l = line.strip().split()
+        pname, coreSeq = l[0], l[3]
+        if core.has_key(pname):
+            core[pname] += coreSeq
+        else:
+            core[pname] = coreSeq
+    fin.close()    
+    return core
+
 def getPrecomputedInputs_zfC2H2(rescalePWMs = True):
     # Get the necesarry precomputed information for the C2H2-ZF inputs
     # Assumes an input table mapping protein IDs to ordered arrays of domains
@@ -1539,6 +1586,12 @@ def getPrecomputedInputs_zfC2H2(rescalePWMs = True):
     #print motifMap
     pwms = getPWM('../cis_bp/C2H2-ZF/PWM.txt', set(motifMap.keys()), motifs, ID_field = 'TF')
     
+    # Read in the fly-factor survey info
+    core_ffs = getProteinInfo_zfC2H2_FFS(PROT_SEQ_FILE_FFS)
+    pwms_ffs = getFlyFactorPWMs_zfC2H2(PWM_INPUT_FILE_FFS, prots=set(core_ffs.keys()))
+    subsetDict(core_ffs, set(pwms_ffs.keys()))
+    subsetDict(pwms_ffs, set(pwms_ffs.keys()))
+
     # Get protein info
     core = {}
     fin = open(PROT_SEQ_FILE, 'r')
@@ -1550,8 +1603,13 @@ def getPrecomputedInputs_zfC2H2(rescalePWMs = True):
             core[pname] += coreSeq
         else:
             core[pname] = coreSeq
-    fin.close()
+    fin.close()    
     subsetDict(core, set(pwms.keys()))
+
+    # Combine to a single set of prots/PWMs
+    for k in core_ffs.keys():
+        core[k] = core_ffs[k]
+        pwms[k] = pwms_ffs[k]
     
     # Get the contact map info
     edges_hmmPos = {}
@@ -1583,6 +1641,7 @@ def getPrecomputedInputs_zfC2H2(rescalePWMs = True):
 
     return pwms, core, edges, edges_hmmPos, aaPosList
 
+
 def main():
 
     np.random.seed(RAND_SEED)
@@ -1595,6 +1654,7 @@ def main():
             pwms, core, full, edges, edges_hmmPos, aaPosList, testProts = getPrecomputedInputs()
         elif DOMAIN_TYPE == 'zf-C2H2':
             pwms, core, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2()
+            core_ffs = 
             """
             for k in sorted(core.keys()):
                 print k, core[k], len(pwms[k])
@@ -1681,7 +1741,7 @@ def main():
     if DOMAIN_TYPE == 'homeodomain':
         fixedStarts = readSeedAlignment(SEED_FILE)
     else:
-        fixedStarts = dict()
+        fixedStarts = readSeedAlignment(SEED_FILE, include = set())
 
     # Compute number of domains in each unique protein
     nDoms = {}
