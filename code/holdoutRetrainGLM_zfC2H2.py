@@ -87,7 +87,7 @@ def main():
 
     #mainOutDir = dirStem+'structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50'
 
-    mainOutDir = '../my_results/zf-C2H2/'
+    mainOutDir = '../my_results/zf-C2H2_100_25/'
 
     # Obtain Model
     filename = mainOutDir+'result.pickle'
