@@ -7,8 +7,7 @@ import numpy as np
 import scipy, os, sys
 from pwm import makeNucMatFile, makeLogo
 from matAlignLib import comp_matrices, matrix_compl, information_content
-from gibbsAlign_GLM import getPrecomputedInputs_zfC2H2, makeAllLogos, makePWMtab
-from gibbsAlign_GLM import getAlignedPWMs, getOrientedPWMs, readSeedAlignment
+from gibbsAlign_GLM import getPrecomputedInputs_zfC2H2, makeAllLogos, makePWMtab, readSeedAlignment
 from gibbsAlign_GLM import assignObsGrps, formGLM_fullX, formGLM_testX
 from gibbsAlign_GLM import formGLM_trainX, formGLM_trainW, formGLM_Y, createGLMModel
 from getHomeoboxConstructs import subsetDict
@@ -94,7 +93,8 @@ def main():
 
     #mainOutDir = dirStem+'structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50'
 
-    mainOutDir = '../my_results/zf-C2H2_100_25_seedFFSall/'
+    #mainOutDir = '../my_results/zf-C2H2_100_25_seedFFSall/'
+    mainOutDir = '../my_results/zf-C2H2_ffsOnly_iter1/'
 
     # Obtain Model
     filename = mainOutDir+'result.pickle'
@@ -110,7 +110,8 @@ def main():
 
 
     # Read data
-    trainPWMs, trainCores, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2()
+    trainPWMs, trainCores, edges, edges_hmmPos, aaPosList = \
+        getPrecomputedInputs_zfC2H2(ffsOnly = True)
 
     print edges
     print edges_hmmPos

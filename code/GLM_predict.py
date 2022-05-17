@@ -4,7 +4,7 @@
 import numpy as np
 import re
 import os, sys
-from gibbsAlign_GLM import getHomeoboxData, makeAllLogos
+from gibbsAlign_GLM import getHomeoboxData, makeAllLogos_multiDomain
 from gibbsAlign_GLM import getTestProtsAndPWMs, getTrainPairsAndInfo
 from gibbsAlign_naiveBayes import getAlignedPWMs, getOrientedPWMs, reverseBaseOrient
 from gibbsAlign_naiveBayes import getCondModel, getLogLikelihood, getLLsum, sampleStartPos

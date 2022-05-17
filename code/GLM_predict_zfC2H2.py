@@ -1,8 +1,9 @@
 # A script for making predictions based on parameter
 # estimates output by gibbAlign_GLM.py [predict fly proteins using the model built using mouse proteins]
 
-from gibbsAlign_GLM import getPrecomputedInputs_zfC2H2, readSeedAlignment, makeAllLogos
-from gibbsAlign_naiveBayes import getAlignedPWMs, getOrientedPWMs
+from gibbsAlign_GLM import getPrecomputedInputs_zfC2H2, readSeedAlignment
+from gibbsAlign_GLM import makeAllLogos, assignObsGrps
+from gibbsAlign_GLM import getAlignedPWMs_multiDomain, getOrientedPWMs
 from getHomeoboxConstructs import subsetDict
 import numpy as np
 import pickle, os
@@ -27,8 +28,12 @@ OBS_GRPS = 'grpIDcore'
 MWID = 4
 RIGHT_OLAP = 1
 
-MODEL_FILE = '../my_results/zf-C2H2_100_25_seedFFSall/result.pickle'
-OUT_DIR = '../my_results/zf-C2H2_100_25_seedFFSall/plots/'
+#MODEL_FILE = '../my_results/zf-C2H2_100_25_seedFFSall/result.pickle'
+#OUT_DIR = '../my_results/zf-C2H2_100_25_seedFFSall/plots/'
+
+MODEL_FILE = '../my_results/zf-C2H2_ffsOnly_iter1/result.pickle'
+OUT_DIR = '../my_results/zf-C2H2_ffsOnly_iter1/plots/'
+
 
 def main():
 
@@ -43,13 +48,13 @@ def main():
     print(opt)
 
 
-    pwms, core, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2()
+    pwms, core, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2(ffsOnly = True)
     
     # Remove examples where PWMs that are too short for the number of domains
     nDoms = {}
     for p in core.keys():
         nDoms[p] = len(core[p])/len(aaPosList)
-        if len(pwms[p]) < (MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+        if len(pwms[p]) < (MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP or nDoms[p] < 2:
             del nDoms[p]
             del core[p]
             del pwms[p]
@@ -62,7 +67,7 @@ def main():
             del fixedStarts[p]
 
     # Assign to observation groups with identical core sequences
-    obsGrps = assignObsGrps(trainCores, by = OBS_GRPS)
+    obsGrps = assignObsGrps(core, by = OBS_GRPS)
     uprots = []
     for grp in obsGrps.keys():
         uprots += obsGrps[grp]
@@ -72,8 +77,10 @@ def main():
     flipAli = False
     if reorient[opt]:
         flipAli = True
-    aliPWMS = getAlignedPWMs(getOrientedPWMs(pwms, rev[opt]), core, start[opt], 
-                             MWID, flipAli = flipAli)
+    aliPWMS = getAlignedPWMs_multiDomain(getOrientedPWMs(pwms, rev[opt]), core, start[opt],
+                                         nDoms, flipAli = flipAli)
+    for k in aliPWMS.keys():
+        print k, len(aliPWMS[k])
     logoDir = OUT_DIR + '0_logos_aligned/'
     if not os.path.exists(logoDir):
         os.makedirs(logoDir)

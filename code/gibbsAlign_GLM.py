@@ -23,7 +23,7 @@ import numpy as np
 import time, pickle, argparse, math, multiprocessing
 
 DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
-OUTPUT_DIRECTORY = '../my_results/zf-C2H2_100_25_seedFFSall/'  # Set to any output directory you want
+OUTPUT_DIRECTORY = '../my_results/zf-C2H2_ffsOnly_iter1/'  # Set to any output directory you want
 #DOMAIN_TYPE = 'homeodomain' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
 #OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
 ORIGINAL_INPUT_FORMAT = False         # Set to True for reproducion of homeodomain manuscript model
@@ -38,7 +38,7 @@ if DOMAIN_TYPE == 'zf-C2H2':
 else:
     RIGHT_OLAP = 0     # No domain base overlap for single-domain proteins
 RAND_SEED = 382738375  # Numpy random seed for used for manuscript results
-MAXITER = 25           # Maximum number of iterations per Markov chain
+MAXITER = 1 #25           # Maximum number of iterations per Markov chain
 N_CHAINS = 100         # Number of Markov chains to use
 INIT_ORACLE = False    # Deprecated ... was used to compare to previous Naive Bayes implementation
 SAMPLE = 100           # Integer to multiply PWM columns by when converting to counts
@@ -244,6 +244,24 @@ def getAlignedPWMs(pwms, aSeqs, start, mWid, flipAli = False):
         npwm = np.zeros((mWid,4), dtype = 'float')
         s = start[p]
         for i in range(mWid):
+            npwm[i,:] = pwm[i+s,:]
+        if flipAli:
+            npwm = matrix_compl(npwm)
+        npwms[p] = npwm
+    return npwms
+
+def getAlignedPWMs_multiDomain(pwms, aSeqs, start, nDoms, flipAli = False):
+    """
+    Output function.
+    Returns a new set of PWMs, truncated on each side to the
+    aligned region
+    """
+    npwms = {}
+    for p in pwms.keys():
+        pwm = pwms[p]
+        npwm = np.zeros(((MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP,4), dtype = 'float')
+        s = start[p]
+        for i in range(MWID):
             npwm[i,:] = pwm[i+s,:]
         if flipAli:
             npwm = matrix_compl(npwm)
@@ -1261,7 +1279,7 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
     """ Runs the gibbsSampler routine K times using parallel executions
     """
     
-    '''
+    #''
     ### For trouble-shooting (runs only one chain)
     maxiter = MAXITER
     res = [gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX,
@@ -1269,9 +1287,9 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
                           verbose, orientKey, orient, fixedStarts, 
                           INIT_ORACLE)]
     return res
-    '''
-
     #'''
+
+    '''
     ### Runs multiple chains in parallel
     ncpus = multiprocessing.cpu_count()-1
     maxiter = MAXITER
@@ -1285,7 +1303,7 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
         procs.append(p.apply_async(gibbsSampleGLM, args=args))
     res = [x.get() for x in procs]
     return res
-    #'''
+    '''
 
 def getFixedStarts_fromStructures(pwms, edges_hmmPos, core,
                                   verbose = False, outfile = None):
@@ -1570,25 +1588,28 @@ def getProteinInfo_zfC2H2_FFS(infile):
     fin.close()    
     return core
 
-def getPrecomputedInputs_zfC2H2(rescalePWMs = True):
+def getPrecomputedInputs_zfC2H2(rescalePWMs = True, ffsOnly = False):
     # Get the necesarry precomputed information for the C2H2-ZF inputs
     # Assumes an input table mapping protein IDs to ordered arrays of domains
     # subsetted to the appropriate base-contacting positions according to HMMER v2.3.2.
+    # ffsOnly using only the flyfactorsurvey data for debugging purposes
 
     # Get the PWM info
     # Get the motif IDs of interest
     fin = open('../cis_bp/C2H2-ZF/motifTable_mostRecent_fewZFs_clusteredOnly_removeTooShort.txt', 'r')
-    fin.readline()
-    motifMap = {}
-    motifs = set()
-    for line in fin:
-        l = line.strip().split('\t')
-        prot, motif = l[0],l[3]
-        motifMap[prot] = motif
-        motifs.add(motif)
-    fin.close()
-    #print motifMap
-    pwms = getPWM('../cis_bp/C2H2-ZF/PWM.txt', set(motifMap.keys()), motifs, ID_field = 'TF')
+    pwms = {}
+    if not ffsOnly:
+        fin.readline()
+        motifMap = {}
+        motifs = set()
+        for line in fin:
+            l = line.strip().split('\t')
+            prot, motif = l[0],l[3]
+            motifMap[prot] = motif
+            motifs.add(motif)
+        fin.close()
+        #print motifMap
+        pwms = getPWM('../cis_bp/C2H2-ZF/PWM.txt', set(motifMap.keys()), motifs, ID_field = 'TF')
     
     # Read in the fly-factor survey info
     core_ffs = getProteinInfo_zfC2H2_FFS(PROT_SEQ_FILE_FFS)
@@ -1600,17 +1621,18 @@ def getPrecomputedInputs_zfC2H2(rescalePWMs = True):
 
     # Get protein info
     core = {}
-    fin = open(PROT_SEQ_FILE, 'r')
-    fin.readline()
-    for line in fin:
-        l = line.strip().split()
-        pname, coreSeq = l[0], l[7]
-        if core.has_key(pname):
-            core[pname] += coreSeq
-        else:
-            core[pname] = coreSeq
-    fin.close()    
-    subsetDict(core, set(pwms.keys()))
+    if not ffsOnly:
+        fin = open(PROT_SEQ_FILE, 'r')
+        fin.readline()
+        for line in fin:
+            l = line.strip().split()
+            pname, coreSeq = l[0], l[7]
+            if core.has_key(pname):
+                core[pname] += coreSeq
+            else:
+                core[pname] = coreSeq
+        fin.close()    
+        subsetDict(core, set(pwms.keys()))
 
     # Combine to a single set of prots/PWMs
     for k in core_ffs.keys():
@@ -1659,7 +1681,7 @@ def main():
         if DOMAIN_TYPE == 'homeodomain':
             pwms, core, full, edges, edges_hmmPos, aaPosList, testProts = getPrecomputedInputs()
         elif DOMAIN_TYPE == 'zf-C2H2':
-            pwms, core, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2()
+            pwms, core, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2(ffsOnly = True)
     print edges
     print edges_hmmPos
     mWid = len(edges.keys())
@@ -1697,8 +1719,8 @@ def main():
     nDoms = {}
     for p in core.keys():
         nDoms[p] = len(core[p])/len(aaPosList)
-        if len(pwms[p]) < (mWid-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
-            print p, core[p], nDoms[p], len(pwms[p])
+        if len(pwms[p]) < (mWid-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP or nDoms[p] < 2:
+            #print p, core[p], nDoms[p], len(pwms[p])
             del nDoms[p]
             del core[p]
             del pwms[p]
@@ -1715,7 +1737,7 @@ def main():
         # would make the pwm too short for the number of arrays given
         for p in fixedStarts.keys():
             if len(pwms[p]) < fixedStarts[p]['start']+(mWid-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
-                print p, core[p], nDoms[p], len(pwms[p])
+                #print p, core[p], nDoms[p], len(pwms[p])
                 del nDoms[p]
                 del core[p]
                 del pwms[p]
