@@ -28,7 +28,7 @@ OUTPUT_DIRECTORY = '../my_results/zf-C2H2_100_25_seedFFSall/'  # Set to any outp
 #OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
 ORIGINAL_INPUT_FORMAT = False         # Set to True for reproducion of homeodomain manuscript model
                                      # Set to False to give inputs in format from ../precomputedInputs/ 
-RUN_GIBBS = False                     # Set to False if only want to troubleshoot prior to running Gibbs sampler
+RUN_GIBBS = True                     # Set to False if only want to troubleshoot prior to running Gibbs sampler
 HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
 EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing
 MWID = 4               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
@@ -1541,7 +1541,7 @@ def getFlyFactorPWMs_zfC2H2(ffsPWMfile, prots = set(), smooth = 0):
             if prot+'_SOLEXA' in motif:
                 pwm = []
                 while line != '' and line[0] != '>':
-                    pwm.append([int(x)+smooth for x in line.strip().split('\t')])
+                    pwm.append([float(x)+smooth for x in line.strip().split('\t')])
                     line = fin.readline()
                 pwms[prot] = np.array(pwm)
             else:
@@ -1553,8 +1553,7 @@ def getFlyFactorPWMs_zfC2H2(ffsPWMfile, prots = set(), smooth = 0):
     # Normalize the motifs
     for p in pwms.keys():
         for i in range(len(pwms[p])):
-            pwms[p][i] = pwms[p][i]/pwms[p][i].sum()
-    
+            pwms[p][i] = pwms[p][i]/pwms[p][i].sum()    
     return pwms
 
 def getProteinInfo_zfC2H2_FFS(infile):
@@ -1593,7 +1592,7 @@ def getPrecomputedInputs_zfC2H2(rescalePWMs = True):
     
     # Read in the fly-factor survey info
     core_ffs = getProteinInfo_zfC2H2_FFS(PROT_SEQ_FILE_FFS)
-    pwms_ffs = getFlyFactorPWMs_zfC2H2(PWM_INPUT_FILE_FFS, prots=set(core_ffs.keys()))
+    pwms_ffs = getFlyFactorPWMs_zfC2H2(PWM_INPUT_FILE_FFS, prots=set(core_ffs.keys()), smooth = 1)
     #print(len(core_ffs), len(pwms_ffs))
     subsetDict(core_ffs, set(pwms_ffs.keys()))
     subsetDict(pwms_ffs, set(pwms_ffs.keys()))
@@ -1693,7 +1692,18 @@ def main():
     orient = ORIENT[trSet][orientKey]
     ###
 
-    print("number of proteins used", len(core.keys()))
+    # Compute number of domains in each unique protein
+    # and remove if the PWM is too short for the number of domains
+    nDoms = {}
+    for p in core.keys():
+        nDoms[p] = len(core[p])/len(aaPosList)
+        if len(pwms[p]) < (mWid-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+            print p, core[p], nDoms[p], len(pwms[p])
+            del nDoms[p]
+            del core[p]
+            del pwms[p]
+
+    #print("number of proteins used", len(core.keys()))
     # Assign cores to similarity groups
     obsGrps = assignObsGrps(core, by = OBS_GRPS)
     with open(dir+'/obsGrpTab.txt', 'w') as fout:
@@ -1742,6 +1752,7 @@ def main():
     elif DOMAIN_TYPE == 'zf-C2H2':
         fixedStarts = readSeedAlignment(SEED_FILE, include = pwms.keys())
 
+    print fixedStarts
     # Compute number of domains in each unique protein
     nDoms = {}
     for p in uniqueProteins:
