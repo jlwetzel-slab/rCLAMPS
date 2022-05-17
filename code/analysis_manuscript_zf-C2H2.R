@@ -23,7 +23,8 @@ MWID <- '4'
 AMINO <- c('A','C','D','E','F','G','H','I','K','L',
            'M','N','P','Q','R','S','T','V','W','Y')
 
-inDir <- paste0('../my_results/zf-C2H2_100_25_seedFFSall/')
+#inDir <- paste0('../my_results/zf-C2H2_100_25_seedFFSall/')
+inDir <- paste0('../my_results/zf-C2H2_ffsOnly_iter1/')
 infile <- paste0(inDir,'pccTable_underS_holdOneOut.txt')
 outdir <- paste0(inDir, 'plots/')
 dir.create(outdir,showWarnings = FALSE,recursive = TRUE)
