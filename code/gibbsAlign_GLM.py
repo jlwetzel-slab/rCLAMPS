@@ -259,9 +259,10 @@ def getAlignedPWMs_multiDomain(pwms, aSeqs, start, nDoms, flipAli = False):
     npwms = {}
     for p in pwms.keys():
         pwm = pwms[p]
-        npwm = np.zeros(((MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP,4), dtype = 'float')
+        pLen = (MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP
+        npwm = np.zeros((pLen,4), dtype = 'float')
         s = start[p]
-        for i in range(MWID):
+        for i in range(pLen):
             npwm[i,:] = pwm[i+s,:]
         if flipAli:
             npwm = matrix_compl(npwm)

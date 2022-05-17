@@ -122,7 +122,7 @@ def main():
     nDoms = {}
     for p in trainCores.keys():
         nDoms[p] = len(trainCores[p])/len(aaPosList)
-        if len(trainPWMs[p]) < (MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+        if len(trainPWMs[p]) < (MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP or nDoms[p] < 2:
             del nDoms[p]
             del trainCores[p]
             del trainPWMs[p]
@@ -150,8 +150,6 @@ def main():
     test_pwms_ali = {}
     startTime = time.time()
     for k, coreSeq in enumerate(grpInd.keys()):
-        if len(coreSeq) < 2*MWID:
-            continue
         startInd_ho, endIndex_ho = grpInd[coreSeq]
         trainProteins, testProteins = [], []
         for prot in uniqueProteins:

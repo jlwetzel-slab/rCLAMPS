@@ -81,10 +81,11 @@ def main():
                                          nDoms, flipAli = flipAli)
     for k in aliPWMS.keys():
         print k, len(aliPWMS[k])
-    logoDir = OUT_DIR + '0_logos_aligned/'
-    if not os.path.exists(logoDir):
-        os.makedirs(logoDir)
-    makeAllLogos(aliPWMS, core, logoDir)
+        print aliPWMS[k]
+    #logoDir = OUT_DIR + '0_logos_aligned/'
+    #if not os.path.exists(logoDir):
+    #    os.makedirs(logoDir)
+    #makeAllLogos(aliPWMS, core, logoDir)
 
 
 if __name__ == '__main__':
