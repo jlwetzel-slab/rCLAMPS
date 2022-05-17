@@ -1703,6 +1703,24 @@ def main():
             del core[p]
             del pwms[p]
 
+    # Removed computation to save space for the GitHub
+    #fixedStarts = getFixedStarts_fromStructures(pwms, edges_hmmPos, core, outfile = dir+'/fixedStarts.txt')
+    
+    # Gather the seed alignment for proteins with known interfaces
+    if DOMAIN_TYPE == 'homeodomain':
+        fixedStarts = readSeedAlignment(SEED_FILE)
+    elif DOMAIN_TYPE == 'zf-C2H2':
+        fixedStarts = readSeedAlignment(SEED_FILE, include = pwms.keys())
+        # Check for the case where the stated fixed starting position
+        # would make the pwm too short for the number of arrays given
+        for p in fixedStarts.keys():
+            if len(pwms[p]) < fixedStarts[p]['start']+(mWid-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+                print p, core[p], nDoms[p], len(pwms[p])
+                del nDoms[p]
+                del core[p]
+                del pwms[p]
+                del fixedStarts[p]
+
     #print("number of proteins used", len(core.keys()))
     # Assign cores to similarity groups
     obsGrps = assignObsGrps(core, by = OBS_GRPS)
@@ -1742,21 +1760,6 @@ def main():
     assert len(uprots) == len(uniqueProteins)
     # So that uniqueProteins is in the same order as obsGrps keys
     uniqueProteins = uprots
-
-    # Removed computation to save space for the GitHub
-    #fixedStarts = getFixedStarts_fromStructures(pwms, edges_hmmPos, core, outfile = dir+'/fixedStarts.txt')
-    
-    #### NOTE: Still need to compute fixed starts for the C2H2-ZFs
-    if DOMAIN_TYPE == 'homeodomain':
-        fixedStarts = readSeedAlignment(SEED_FILE)
-    elif DOMAIN_TYPE == 'zf-C2H2':
-        fixedStarts = readSeedAlignment(SEED_FILE, include = pwms.keys())
-
-    print fixedStarts
-    # Compute number of domains in each unique protein
-    nDoms = {}
-    for p in uniqueProteins:
-        nDoms[p] = len(core[p])/len(aaPosList)
     
     print("We are using %d proteins in the gibbs sampling." %len(uniqueProteins))
 

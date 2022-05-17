@@ -8,7 +8,7 @@ import scipy, os, sys
 from pwm import makeNucMatFile, makeLogo
 from matAlignLib import comp_matrices, matrix_compl, information_content
 from gibbsAlign_GLM import getPrecomputedInputs_zfC2H2, makeAllLogos, makePWMtab
-from gibbsAlign_GLM import getAlignedPWMs, getOrientedPWMs
+from gibbsAlign_GLM import getAlignedPWMs, getOrientedPWMs, readSeedAlignment
 from gibbsAlign_GLM import assignObsGrps, formGLM_fullX, formGLM_testX
 from gibbsAlign_GLM import formGLM_trainX, formGLM_trainW, formGLM_Y, createGLMModel
 from getHomeoboxConstructs import subsetDict
@@ -29,8 +29,15 @@ COMPL_BASE = {0:3, 1:2, 2:1, 3:0}
 MWID = 4  # Number of base positions in the PDSIM
 RIGHT_OLAP = 1
 RESCALE_PWMS = True
-MAKE_LOGOS = False
+MAKE_LOGOS = True
 OBS_GRPS = 'grpIDcore'
+
+# Input files for PWMs and protein info
+PROT_SEQ_FILE = '../precomputedInputs/zf-C2H2/prot_seq_fewZFs_hmmerOut_clusteredOnly_removeTooShort.txt'  # Input protein domain file subsetted to relvant amino acid contacting positions
+PROT_SEQ_FILE_FFS = '../flyFactorSurvey/enuameh/enuameh_perFinger_processedProtInfo.txt'
+PWM_INPUT_TABLE = '../precomputedInputs/zf-C2H2/pwmTab_fewZFs_clusteredOnly_removeTooShort.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
+PWM_INPUT_FILE_FFS = '../flyFactorSurvey/enuameh/flyfactor_dataset_A.txt'
+SEED_FILE = '../flyFactorSurvey/enuameh/enuameh_perFinger_processedProt_startPosInfo.txt'
 
 def makePCCtable(exp, pred, core, fname):
     # Compute the per-position pearson correlation coefficients
@@ -87,7 +94,7 @@ def main():
 
     #mainOutDir = dirStem+'structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50'
 
-    mainOutDir = '../my_results/zf-C2H2_100_25/'
+    mainOutDir = '../my_results/zf-C2H2_100_25_seedFFSall/'
 
     # Obtain Model
     filename = mainOutDir+'result.pickle'
@@ -110,15 +117,28 @@ def main():
     print aaPosList
     #print trainCores
 
+    # Remove examples where PWMs that are too short for the number of domains
+    nDoms = {}
+    for p in trainCores.keys():
+        nDoms[p] = len(trainCores[p])/len(aaPosList)
+        if len(trainPWMs[p]) < (MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+            del nDoms[p]
+            del trainCores[p]
+            del trainPWMs[p]
+    fixedStarts = readSeedAlignment(SEED_FILE, include = trainPWMs.keys())
+    for p in fixedStarts.keys():
+        if len(trainPWMs[p]) < fixedStarts[p]['start']+(MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+            del nDoms[p]
+            del trainCores[p]
+            del trainPWMs[p]
+            del fixedStarts[p]
+
+    # Assign to observation groups with identical core sequences
     obsGrps = assignObsGrps(trainCores, by = OBS_GRPS)
     uprots = []
     for grp in obsGrps.keys():
         uprots += obsGrps[grp]
     uniqueProteins = uprots  
-
-    nDoms = {}
-    for p in uniqueProteins:
-        nDoms[p] = len(trainCores[p])/len(aaPosList)
 
     # Create the predicted logos for the corresponding core sequences
     # while holding out the core seq grps
@@ -129,6 +149,8 @@ def main():
     test_pwms_ali = {}
     startTime = time.time()
     for k, coreSeq in enumerate(grpInd.keys()):
+        if len(coreSeq) < 2*MWID:
+            continue
         startInd_ho, endIndex_ho = grpInd[coreSeq]
         trainProteins, testProteins = [], []
         for prot in uniqueProteins:
@@ -141,6 +163,7 @@ def main():
         trainW = formGLM_trainW(trainPWMs, trainProteins, nDoms, start, rev)
         model_ho = createGLMModel(trainX, trainY, trainW)
         
+        print coreSeq
         pwm = predictSpecificity_array_ZF(fullX, model_ho, startInd_ho, nDoms[testProteins[0]])
 
         for p in testProteins:
@@ -166,7 +189,7 @@ def main():
     # Make predicted logos from the hold-one-out training
     if MAKE_LOGOS:
         print "Generating the logos from hold-one-out training"
-        logoDir = mainOutDir + '/predicted_logos_holdOneOut'+suff+'/'
+        logoDir = mainOutDir + '/0_logos_predicted_hoo/'
         startTime = time.time()
         if not os.path.exists(logoDir):
             os.makedirs(logoDir)

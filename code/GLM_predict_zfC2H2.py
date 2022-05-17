@@ -1,0 +1,84 @@
+# A script for making predictions based on parameter
+# estimates output by gibbAlign_GLM.py [predict fly proteins using the model built using mouse proteins]
+
+from gibbsAlign_GLM import getPrecomputedInputs_zfC2H2, readSeedAlignment, makeAllLogos
+from gibbsAlign_naiveBayes import getAlignedPWMs, getOrientedPWMs
+from getHomeoboxConstructs import subsetDict
+import numpy as np
+import pickle, os
+
+BASE = ['A','C','G','T']
+REV_COMPL = {'A':'T','C':'G','G':'C','T':'A'}
+AMINO = ['A','C','D','E','F','G','H','I','K','L',
+         'M','N','P','Q','R','S','T','V','W','Y']
+B2IND = {x: i for i, x in enumerate(BASE)}
+A2IND = {x: i for i, x in enumerate(AMINO)}
+IND2B = {i: x for i, x in enumerate(BASE)}
+IND2A = {i: x for i, x in enumerate(AMINO)}
+
+# Input files for PWMs and protein info
+PROT_SEQ_FILE = '../precomputedInputs/zf-C2H2/prot_seq_fewZFs_hmmerOut_clusteredOnly_removeTooShort.txt'  # Input protein domain file subsetted to relvant amino acid contacting positions
+PROT_SEQ_FILE_FFS = '../flyFactorSurvey/enuameh/enuameh_perFinger_processedProtInfo.txt'
+PWM_INPUT_TABLE = '../precomputedInputs/zf-C2H2/pwmTab_fewZFs_clusteredOnly_removeTooShort.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
+PWM_INPUT_FILE_FFS = '../flyFactorSurvey/enuameh/flyfactor_dataset_A.txt'
+SEED_FILE = '../flyFactorSurvey/enuameh/enuameh_perFinger_processedProt_startPosInfo.txt'
+
+OBS_GRPS = 'grpIDcore'
+MWID = 4
+RIGHT_OLAP = 1
+
+MODEL_FILE = '../my_results/zf-C2H2_100_25_seedFFSall/result.pickle'
+OUT_DIR = '../my_results/zf-C2H2_100_25_seedFFSall/plots/'
+
+def main():
+
+    with open(MODEL_FILE) as f:
+        res = pickle.load(f)
+
+    score = [x['ll'] for x in res]
+    reorient = [x['reorient'] for x in res]
+    start = [x['start'] for x in res]
+    rev = [x['rev'] for x in res]
+    opt = np.argmax(score)
+    print(opt)
+
+
+    pwms, core, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2()
+    
+    # Remove examples where PWMs that are too short for the number of domains
+    nDoms = {}
+    for p in core.keys():
+        nDoms[p] = len(core[p])/len(aaPosList)
+        if len(pwms[p]) < (MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+            del nDoms[p]
+            del core[p]
+            del pwms[p]
+    fixedStarts = readSeedAlignment(SEED_FILE, include = pwms.keys())
+    for p in fixedStarts.keys():
+        if len(pwms[p]) < fixedStarts[p]['start']+(MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+            del nDoms[p]
+            del core[p]
+            del pwms[p]
+            del fixedStarts[p]
+
+    # Assign to observation groups with identical core sequences
+    obsGrps = assignObsGrps(trainCores, by = OBS_GRPS)
+    uprots = []
+    for grp in obsGrps.keys():
+        uprots += obsGrps[grp]
+    uniqueProteins = uprots  
+
+    # Evaluate the fit of the aligned pwms to the inferred model
+    flipAli = False
+    if reorient[opt]:
+        flipAli = True
+    aliPWMS = getAlignedPWMs(getOrientedPWMs(pwms, rev[opt]), core, start[opt], 
+                             MWID, flipAli = flipAli)
+    logoDir = OUT_DIR + '0_logos_aligned/'
+    if not os.path.exists(logoDir):
+        os.makedirs(logoDir)
+    makeAllLogos(aliPWMS, core, logoDir)
+
+
+if __name__ == '__main__':
+    main()
