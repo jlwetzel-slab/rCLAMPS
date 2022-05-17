@@ -19,17 +19,12 @@ library(lvplot)
 # a strict hold-out cross-validation setup.
 rm(list = ls())
 
-CHAIN <- '100'
-ITER <- '25'
-RAND_SEED <- '382738375'
 MWID <- '4'
 AMINO <- c('A','C','D','E','F','G','H','I','K','L',
            'M','N','P','Q','R','S','T','V','W','Y')
-#CORE_POS <- paste0('A.',c('2','3','4','5','47','50','51','54','55'))
 
-inDir <- paste0('../my_results/zf-C2H2_100_25/')
+inDir <- paste0('../my_results/zf-C2H2_100_25_seedFFSall/')
 infile <- paste0(inDir,'pccTable_underS_holdOneOut.txt')
-#infile.noHO <- paste0(inDir,'pccTable_underS.txt')
 outdir <- paste0(inDir, 'plots/')
 dir.create(outdir,showWarnings = FALSE,recursive = TRUE)
 
