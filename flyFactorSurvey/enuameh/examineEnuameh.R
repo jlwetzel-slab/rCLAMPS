@@ -21,12 +21,15 @@ keepProts <- keepProts[keepProt == TRUE]$prot
 specs <- specs[prot %in% keepProts]
 
 # Order based on finger positions and output table to read into gibbs sampler
+specs.protInfo <- specs[,c('prot','motif','zfNum','core','helix'),with=FALSE]
+specs.protInfo <- specs.protInfo[!duplicated(specs.protInfo)]
 specs.protInfo$motifNameStem.ffs <- sapply(specs.protInfo$prot, function(x) paste(x,'SOLEXA',sep = '_'))
+specs.protInfo <- specs.protInfo[order(prot, zfNum)]
 write.table(specs.protInfo, file = 'enuameh_perFinger_processedProtInfo.txt', 
             sep = '\t',quote = FALSE, row.names = FALSE)
 
 # Record the correct start/orientation information for the FFS proteins
 startInfo <- specs[,.(start = min(motifPos) - 1, rev = ifelse(strand == -1, 1, 0)), by = 'prot']
 startInfo <- startInfo[!duplicated(startInfo)]
-write.table(specs.protInfo, file = 'enuameh_perFinger_processedProt_startPosInfo.txt', 
+write.table(startInfo, file = 'enuameh_perFinger_processedProt_startPosInfo.txt', 
             sep = '\t',quote = FALSE, row.names = FALSE)
