@@ -93,8 +93,8 @@ def main():
 
     #mainOutDir = dirStem+'structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50'
 
-    mainOutDir = '../my_results/zf-C2H2_100_25_seedFFSall/'
-    #mainOutDir = '../my_results/zf-C2H2_ffsOnly_iter1/'
+    #mainOutDir = '../my_results/zf-C2H2_100_25_seedFFSall/'
+    mainOutDir = '../my_results/zf-C2H2_ffsOnly_iter1/'
 
     # Obtain Model
     filename = mainOutDir+'result.pickle'
@@ -111,7 +111,7 @@ def main():
 
     # Read data
     trainPWMs, trainCores, edges, edges_hmmPos, aaPosList = \
-        getPrecomputedInputs_zfC2H2(ffsOnly = False)
+        getPrecomputedInputs_zfC2H2(ffsOnly = True)
 
     print edges
     print edges_hmmPos

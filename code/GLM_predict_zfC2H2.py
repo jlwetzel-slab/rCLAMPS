@@ -28,11 +28,11 @@ OBS_GRPS = 'grpIDcore'
 MWID = 4
 RIGHT_OLAP = 1
 
-MODEL_FILE = '../my_results/zf-C2H2_100_25_seedFFSall/result.pickle'
-OUT_DIR = '../my_results/zf-C2H2_100_25_seedFFSall/plots/'
+#MODEL_FILE = '../my_results/zf-C2H2_100_25_seedFFSall/result.pickle'
+#OUT_DIR = '../my_results/zf-C2H2_100_25_seedFFSall/plots/'
 
-#MODEL_FILE = '../my_results/zf-C2H2_ffsOnly_iter1/result.pickle'
-#OUT_DIR = '../my_results/zf-C2H2_ffsOnly_iter1/plots/'
+MODEL_FILE = '../my_results/zf-C2H2_ffsOnly_iter1/result.pickle'
+OUT_DIR = '../my_results/zf-C2H2_ffsOnly_iter1/plots/'
 
 
 def main():
@@ -48,7 +48,7 @@ def main():
     print(opt)
 
 
-    pwms, core, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2(ffsOnly = False)
+    pwms, core, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2(ffsOnly = True)
     
     # Remove examples where PWMs that are too short for the number of domains
     nDoms = {}
