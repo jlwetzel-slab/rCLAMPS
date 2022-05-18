@@ -28,11 +28,11 @@ OBS_GRPS = 'grpIDcore'
 MWID = 4
 RIGHT_OLAP = 1
 
-#MODEL_FILE = '../my_results/zf-C2H2_100_25_seedFFSall/result.pickle'
-#OUT_DIR = '../my_results/zf-C2H2_100_25_seedFFSall/plots/'
+MODEL_FILE = '../my_results/zf-C2H2_100_25_seedFFSall/result.pickle'
+OUT_DIR = '../my_results/zf-C2H2_100_25_seedFFSall/plots/'
 
-MODEL_FILE = '../my_results/zf-C2H2_ffsOnly_iter1/result.pickle'
-OUT_DIR = '../my_results/zf-C2H2_ffsOnly_iter1/plots/'
+#MODEL_FILE = '../my_results/zf-C2H2_ffsOnly_iter1/result.pickle'
+#OUT_DIR = '../my_results/zf-C2H2_ffsOnly_iter1/plots/'
 
 
 def main():
@@ -48,7 +48,7 @@ def main():
     print(opt)
 
 
-    pwms, core, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2(ffsOnly = True)
+    pwms, core, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2(ffsOnly = False)
     
     # Remove examples where PWMs that are too short for the number of domains
     nDoms = {}
@@ -79,9 +79,9 @@ def main():
         flipAli = True
     aliPWMS = getAlignedPWMs_multiDomain(getOrientedPWMs(pwms, rev[opt]), core, start[opt],
                                          nDoms, flipAli = flipAli)
-    for k in aliPWMS.keys():
-        print k, len(aliPWMS[k])
-        print aliPWMS[k]
+    #for k in aliPWMS.keys():
+    #    print k, len(aliPWMS[k])
+    #    print aliPWMS[k]
     logoDir = OUT_DIR + '0_logos_aligned/'
     if not os.path.exists(logoDir):
         os.makedirs(logoDir)
