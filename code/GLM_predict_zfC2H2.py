@@ -82,10 +82,10 @@ def main():
     for k in aliPWMS.keys():
         print k, len(aliPWMS[k])
         print aliPWMS[k]
-    #logoDir = OUT_DIR + '0_logos_aligned/'
-    #if not os.path.exists(logoDir):
-    #    os.makedirs(logoDir)
-    #makeAllLogos(aliPWMS, core, logoDir)
+    logoDir = OUT_DIR + '0_logos_aligned/'
+    if not os.path.exists(logoDir):
+        os.makedirs(logoDir)
+    makeAllLogos(aliPWMS, core, logoDir)
 
 
 if __name__ == '__main__':
