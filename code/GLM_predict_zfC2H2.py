@@ -49,7 +49,7 @@ def main():
 
 
     pwms, core, edges, edges_hmmPos, aaPosList = \
-        getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False)
+        getPrecomputedInputs_zfC2H2(rescalePWMs = True, ffsOnly = False)
     
     # Remove examples where PWMs that are too short for the number of domains
     nDoms = {}
