@@ -28,8 +28,8 @@ OBS_GRPS = 'grpIDcore'
 MWID = 4
 RIGHT_OLAP = 1
 
-MODEL_FILE = '../my_results/zf-C2H2_100_25_seedFFSall_noRescale/result.pickle'
-OUT_DIR = '../my_results/zf-C2H2_100_25_seedFFSall_noRescale/plots/'
+MODEL_FILE = '../my_results/zf-C2H2_100_25_seedFFSall/result.pickle'
+OUT_DIR = '../my_results/zf-C2H2_100_25_seedFFSall/plots/'
 
 #MODEL_FILE = '../my_results/zf-C2H2_ffsOnly_iter1/result.pickle'
 #OUT_DIR = '../my_results/zf-C2H2_ffsOnly_iter1/plots/'
@@ -84,6 +84,7 @@ def main():
     #    print k, len(aliPWMS[k])
     #    print aliPWMS[k]
     logoDir = OUT_DIR + '0_logos_aligned/'
+    print "Creating aligned logos in %s" %logoDir
     if not os.path.exists(logoDir):
         os.makedirs(logoDir)
     makeAllLogos(aliPWMS, core, logoDir)
