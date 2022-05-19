@@ -93,8 +93,8 @@ def main():
 
     #mainOutDir = dirStem+'structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50'
 
-    #mainOutDir = '../my_results/zf-C2H2_100_25_seedFFSall/'
-    mainOutDir = '../my_results/zf-C2H2_ffsOnly_iter1/'
+    mainOutDir = '../my_results/zf-C2H2_100_25_seedFFSall_noRescale/'
+    #mainOutDir = '../my_results/zf-C2H2_ffsOnly_iter1/'
 
     # Obtain Model
     filename = mainOutDir+'result.pickle'
@@ -111,7 +111,7 @@ def main():
 
     # Read data
     trainPWMs, trainCores, edges, edges_hmmPos, aaPosList = \
-        getPrecomputedInputs_zfC2H2(ffsOnly = True)
+        getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = True)
 
     print edges
     print edges_hmmPos
@@ -162,7 +162,7 @@ def main():
         trainW = formGLM_trainW(trainPWMs, trainProteins, nDoms, start, rev)
         model_ho = createGLMModel(trainX, trainY, trainW)
         
-        print coreSeq
+        #print coreSeq
         pwm = predictSpecificity_array_ZF(fullX, model_ho, startInd_ho, nDoms[testProteins[0]])
 
         for p in testProteins:
@@ -189,11 +189,14 @@ def main():
     if MAKE_LOGOS:
         print "Generating the logos from hold-one-out training"
         logoDir = mainOutDir + '/0_logos_predicted_hoo/'
+        logoDir2 = mainOutDir + '/0_logos_aligned_hoo/'
         startTime = time.time()
         if not os.path.exists(logoDir):
             os.makedirs(logoDir)
         makeAllLogos(pred_pwms, trainCores, logoDir)
+        makeAllLogos(test_pwms_ali, trainCores, logoDir2)
         print("Ran in %.2f seconds" %(time.time()-startTime))
 
 if __name__ == '__main__':
     main()
+

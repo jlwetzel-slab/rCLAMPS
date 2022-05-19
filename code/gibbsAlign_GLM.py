@@ -23,7 +23,7 @@ import numpy as np
 import time, pickle, argparse, math, multiprocessing
 
 DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
-OUTPUT_DIRECTORY = '../my_results/zf-C2H2_ffsOnly_iter1/'  # Set to any output directory you want
+OUTPUT_DIRECTORY = '../my_results/zf-C2H2_100_25_seedFFSall_noRescale/'  # Set to any output directory you want
 #DOMAIN_TYPE = 'homeodomain' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
 #OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
 ORIGINAL_INPUT_FORMAT = False         # Set to True for reproducion of homeodomain manuscript model
@@ -38,7 +38,7 @@ if DOMAIN_TYPE == 'zf-C2H2':
 else:
     RIGHT_OLAP = 0     # No domain base overlap for single-domain proteins
 RAND_SEED = 382738375  # Numpy random seed for used for manuscript results
-MAXITER = 1 #25           # Maximum number of iterations per Markov chain
+MAXITER = 25           # Maximum number of iterations per Markov chain
 N_CHAINS = 100         # Number of Markov chains to use
 INIT_ORACLE = False    # Deprecated ... was used to compare to previous Naive Bayes implementation
 SAMPLE = 100           # Integer to multiply PWM columns by when converting to counts
@@ -1280,7 +1280,7 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
     """ Runs the gibbsSampler routine K times using parallel executions
     """
     
-    #''
+    '''
     ### For trouble-shooting (runs only one chain)
     maxiter = MAXITER
     res = [gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX,
@@ -1288,9 +1288,9 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
                           verbose, orientKey, orient, fixedStarts, 
                           INIT_ORACLE)]
     return res
-    #'''
-
     '''
+
+    #'''
     ### Runs multiple chains in parallel
     ncpus = multiprocessing.cpu_count()-1
     maxiter = MAXITER
@@ -1304,7 +1304,7 @@ def runGibbs(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
         procs.append(p.apply_async(gibbsSampleGLM, args=args))
     res = [x.get() for x in procs]
     return res
-    '''
+    #'''
 
 def getFixedStarts_fromStructures(pwms, edges_hmmPos, core,
                                   verbose = False, outfile = None):
@@ -1589,7 +1589,7 @@ def getProteinInfo_zfC2H2_FFS(infile):
     fin.close()    
     return core
 
-def getPrecomputedInputs_zfC2H2(rescalePWMs = True, ffsOnly = False):
+def getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False):
     # Get the necesarry precomputed information for the C2H2-ZF inputs
     # Assumes an input table mapping protein IDs to ordered arrays of domains
     # subsetted to the appropriate base-contacting positions according to HMMER v2.3.2.
@@ -1682,7 +1682,8 @@ def main():
         if DOMAIN_TYPE == 'homeodomain':
             pwms, core, full, edges, edges_hmmPos, aaPosList, testProts = getPrecomputedInputs()
         elif DOMAIN_TYPE == 'zf-C2H2':
-            pwms, core, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2(ffsOnly = True)
+            pwms, core, edges, edges_hmmPos, aaPosList = \
+                getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False)
     print edges
     print edges_hmmPos
     mWid = len(edges.keys())
