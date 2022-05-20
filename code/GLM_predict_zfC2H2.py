@@ -27,9 +27,10 @@ SEED_FILE = '../flyFactorSurvey/enuameh/enuameh_perFinger_processedProt_startPos
 OBS_GRPS = 'grpIDcore'
 MWID = 4
 RIGHT_OLAP = 1
+ANCHOR_B1H = True
 
-MODEL_FILE = '../my_results/zf-C2H2_100_25_seedFFSall/result.pickle'
-OUT_DIR = '../my_results/zf-C2H2_100_25_seedFFSall/plots/'
+MODEL_FILE = '../my_results/zf-C2H2_100_25_seedB1H/result.pickle'
+OUT_DIR = '../my_results/zf-C2H2_100_25_seedB1H/plots/'
 
 #MODEL_FILE = '../my_results/zf-C2H2_ffsOnly_iter1/result.pickle'
 #OUT_DIR = '../my_results/zf-C2H2_ffsOnly_iter1/plots/'
@@ -59,13 +60,25 @@ def main():
             del nDoms[p]
             del core[p]
             del pwms[p]
-    fixedStarts = readSeedAlignment(SEED_FILE, include = pwms.keys())
-    for p in fixedStarts.keys():
-        if len(pwms[p]) < fixedStarts[p]['start']+(MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+        
+    # Remove examples where the known/stated fixed starting position
+    # would make the pwm too short for the number of arrays annotated as binding
+    knownStarts_ffs = readSeedAlignment(SEED_FILE, include = pwms.keys())
+    for p in knownStarts_ffs.keys():
+        if len(pwms[p]) < knownStarts_ffs[p]['start']+(mWid-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+            #print p, core[p], nDoms[p], len(pwms[p])
             del nDoms[p]
             del core[p]
             del pwms[p]
-            del fixedStarts[p]
+            del knownStarts_ffs[p]
+    if ANCHOR_B1H:
+        # Anchor based on the single-domain B1H data
+        fixedStarts = {}
+        for p in core.keys():
+            if p[:4] == 'B1H.':
+                fixedStarts[p] = {'start': 0, 'rev': 0}
+    elif ANCHOR_FFS:
+        fixedStarts = knownStarts_ffs
 
     # Assign to observation groups with identical core sequences
     obsGrps = assignObsGrps(core, by = OBS_GRPS)
@@ -78,6 +91,17 @@ def main():
     flipAli = False
     if reorient[opt]:
         flipAli = True
+
+    # Exlcude alignment logos for the B1H single-finger examples
+    if ANCHOR_B1H:
+        for p in core.keys():
+            if p[0][:4] == 'B1H.':
+                del core[p]
+                del pwms[p]
+                del rev[opt][p]
+                del start[opt][p]
+                del nDoms[p]
+
     aliPWMS = getAlignedPWMs_multiDomain(getOrientedPWMs(pwms, rev[opt]), core, start[opt],
                                          nDoms, flipAli = flipAli)
     #for k in aliPWMS.keys():

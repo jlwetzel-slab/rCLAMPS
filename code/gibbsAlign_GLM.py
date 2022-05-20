@@ -23,7 +23,7 @@ import numpy as np
 import time, pickle, argparse, math, multiprocessing
 
 DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
-OUTPUT_DIRECTORY = '../my_results/zf-C2H2_100_25_seedFFSall_noRescale/'  # Set to any output directory you want
+OUTPUT_DIRECTORY = '../my_results/zf-C2H2_100_15_seedB1H/'  # Set to any output directory you want
 #DOMAIN_TYPE = 'homeodomain' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
 #OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
 ORIGINAL_INPUT_FORMAT = False         # Set to True for reproducion of homeodomain manuscript model
@@ -33,12 +33,14 @@ HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
 EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing
 MWID = 4               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
 #MWID = 6
+ANCHOR_B1H = False
 if DOMAIN_TYPE == 'zf-C2H2':
     RIGHT_OLAP = 1     # Number of 3' bases in contact map overlpping with previous domain instance (if multi-domain) - 1 for zf-C2H2
+    ANCHOR_B1H = True
 else:
     RIGHT_OLAP = 0     # No domain base overlap for single-domain proteins
 RAND_SEED = 382738375  # Numpy random seed for used for manuscript results
-MAXITER = 25           # Maximum number of iterations per Markov chain
+MAXITER = 15           # Maximum number of iterations per Markov chain
 N_CHAINS = 100         # Number of Markov chains to use
 INIT_ORACLE = False    # Deprecated ... was used to compare to previous Naive Bayes implementation
 SAMPLE = 100           # Integer to multiply PWM columns by when converting to counts
@@ -1205,6 +1207,10 @@ def gibbsSampleGLM(pwms, edges, uniqueProteins, obsGrps, fullX, grpInd, nDoms,
                     proteins_ho += [prot]
                 else:
                     trainProteins += [prot]
+
+            if len(proteins_ho) == 1 and ANCHOR_B1H and proteins_ho[0][:4] == 'B1H.':
+                continue
+
             #print grpID, len(trainProteins), len(proteins_ho)
             trainX = formGLM_trainX(fullX,startInd_ho,endIndex_ho)
             trainY = formGLM_Y(trainProteins, nDoms)
@@ -1589,7 +1595,34 @@ def getProteinInfo_zfC2H2_FFS(infile):
     fin.close()    
     return core
 
-def getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False):
+def getB1Hmotifs(fname):
+    # Read in the B1H (Najafabadi et al., 2015 single finger data)
+    fin = open(fname, 'r')
+    line = fin.readline()
+    pwms, cores = {}, {}
+    done = False
+    while not done:
+        pwm = np.zeros((4,4), dtype = 'float')
+        for i in range(4):
+            line = fin.readline()
+            l = line.strip().split()
+            if len(l) < 1:
+                done = True
+                break
+            core = l[0]
+            bpos = int(l[1])
+            col = [float(x) for x in l[2:]]
+            pwm[i,:] = np.array(col)
+        if not done:
+            #print pwm.shape
+            pwms['B1H.'+core] = pwm
+            #print core
+            cores['B1H.'+core] = core
+            #print cores.keys()
+    #print(len(pwms), len(cores))
+    return cores, pwms
+
+def getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False, includeB1H = False):
     # Get the necesarry precomputed information for the C2H2-ZF inputs
     # Assumes an input table mapping protein IDs to ordered arrays of domains
     # subsetted to the appropriate base-contacting positions according to HMMER v2.3.2.
@@ -1639,7 +1672,16 @@ def getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False):
     for k in core_ffs.keys():
         core[k] = core_ffs[k]
         pwms[k] = pwms_ffs[k]
-    
+
+    # Read in the fly-factor survey info
+    if includeB1H:
+        core_b1h, pwms_b1h = getB1Hmotifs('../cis_bp/C2H2-ZF/B1H.motifs.long.pfm.scaled.noReps.txt')
+        #print core_b1h
+        # Combine to a single set of prots/PWMs
+        for k in core_b1h.keys():
+            core[k] = core_b1h[k]
+            pwms[k] = pwms_b1h[k]
+   
     # Get the contact map info
     edges_hmmPos = {}
     fin = open(CONTACT_MAP, 'r')
@@ -1668,6 +1710,7 @@ def getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False):
             pwms[k] = rescalePWM(pwms[k], maxBaseSelect = 50)
 
 
+    #print core
     return pwms, core, edges, edges_hmmPos, aaPosList
 
 
@@ -1683,7 +1726,8 @@ def main():
             pwms, core, full, edges, edges_hmmPos, aaPosList, testProts = getPrecomputedInputs()
         elif DOMAIN_TYPE == 'zf-C2H2':
             pwms, core, edges, edges_hmmPos, aaPosList = \
-                getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False)
+                getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False,
+                                            includeB1H = True)
     print edges
     print edges_hmmPos
     mWid = len(edges.keys())
@@ -1721,7 +1765,7 @@ def main():
     nDoms = {}
     for p in core.keys():
         nDoms[p] = len(core[p])/len(aaPosList)
-        if len(pwms[p]) < (mWid-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP or nDoms[p] < 2:
+        if len(pwms[p]) < (mWid-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:# or nDoms[p] < 2:
             #print p, core[p], nDoms[p], len(pwms[p])
             del nDoms[p]
             del core[p]
@@ -1734,16 +1778,24 @@ def main():
     if DOMAIN_TYPE == 'homeodomain':
         fixedStarts = readSeedAlignment(SEED_FILE)
     elif DOMAIN_TYPE == 'zf-C2H2':
-        fixedStarts = readSeedAlignment(SEED_FILE, include = pwms.keys())
-        # Check for the case where the stated fixed starting position
-        # would make the pwm too short for the number of arrays given
-        for p in fixedStarts.keys():
-            if len(pwms[p]) < fixedStarts[p]['start']+(mWid-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+        knownStarts_ffs = readSeedAlignment(SEED_FILE, include = pwms.keys())
+        # Remove examples where the known/stated fixed starting position
+        # would make the pwm too short for the number of arrays annotated as binding
+        for p in knownStarts_ffs.keys():
+            if len(pwms[p]) < knownStarts_ffs[p]['start']+(mWid-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
                 #print p, core[p], nDoms[p], len(pwms[p])
                 del nDoms[p]
                 del core[p]
                 del pwms[p]
-                del fixedStarts[p]
+                del knownStarts_ffs[p]
+        if ANCHOR_B1H:
+            # Anchor based on the single-domain B1H data
+            fixedStarts = {}
+            for p in core.keys():
+                if p[:4] == 'B1H.':
+                    fixedStarts[p] = {'start': 0, 'rev': 0}
+        elif ANCHOR_FFS:
+            fixedStarts = knownStarts_ffs
 
     #print("number of proteins used", len(core.keys()))
     # Assign cores to similarity groups
@@ -1784,9 +1836,11 @@ def main():
     assert len(uprots) == len(uniqueProteins)
     # So that uniqueProteins is in the same order as obsGrps keys
     uniqueProteins = uprots
+    print(len(fixedStarts))
     
     print("We are using %d proteins in the gibbs sampling." %len(uniqueProteins))
 
+    #"""
     if RUN_GIBBS:
         print("Running %d markov chains ..." %N_CHAINS)
         startTime = time.time()
@@ -1803,6 +1857,7 @@ def main():
         print("Writing results in ", dir+'result.pickle')
         with open(dir+'result.pickle', 'wb') as f:
             pickle.dump(res, f)
+    #"""
 
 if __name__ == '__main__':
     main()

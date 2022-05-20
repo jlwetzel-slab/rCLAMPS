@@ -30,6 +30,7 @@ RIGHT_OLAP = 1
 RESCALE_PWMS = True
 MAKE_LOGOS = True
 OBS_GRPS = 'grpIDcore'
+ANCHOR_B1H = True
 
 # Input files for PWMs and protein info
 PROT_SEQ_FILE = '../precomputedInputs/zf-C2H2/prot_seq_fewZFs_hmmerOut_clusteredOnly_removeTooShort.txt'  # Input protein domain file subsetted to relvant amino acid contacting positions
@@ -91,10 +92,7 @@ def predictSpecificity_array_ZF(fullX, model, startInd, arrayLen):
 
 def main():
 
-    #mainOutDir = dirStem+'structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50'
-
-    mainOutDir = '../my_results/zf-C2H2_100_25_seedFFSall/'
-    #mainOutDir = '../my_results/zf-C2H2_ffsOnly_iter1/'
+    mainOutDir = '../my_results/zf-C2H2_100_15_seedB1H/'
 
     # Obtain Model
     filename = mainOutDir+'result.pickle'
@@ -111,7 +109,8 @@ def main():
 
     # Read data
     trainPWMs, trainCores, edges, edges_hmmPos, aaPosList = \
-        getPrecomputedInputs_zfC2H2(rescalePWMs = True, ffsOnly = False)
+        getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False,
+                                    includeB1H = True)
 
     print edges
     print edges_hmmPos
@@ -126,20 +125,32 @@ def main():
             del nDoms[p]
             del trainCores[p]
             del trainPWMs[p]
-    fixedStarts = readSeedAlignment(SEED_FILE, include = trainPWMs.keys())
-    for p in fixedStarts.keys():
-        if len(trainPWMs[p]) < fixedStarts[p]['start']+(MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+    
+    # Remove examples where the known/stated fixed starting position
+    # would make the pwm too short for the number of arrays annotated as binding
+    knownStarts_ffs = readSeedAlignment(SEED_FILE, include = pwms.keys())
+    for p in knownStarts_ffs.keys():
+        if len(trainPWMs[p]) < knownStarts_ffs[p]['start']+(MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+            #print p, core[p], nDoms[p], len(pwms[p])
             del nDoms[p]
             del trainCores[p]
             del trainPWMs[p]
-            del fixedStarts[p]
+            del knownStarts_ffs[p]
+    if ANCHOR_B1H:
+        # Anchor based on the single-domain B1H data
+        fixedStarts = {}
+        for p in core.keys():
+            if p[:4] == 'B1H.':
+                fixedStarts[p] = {'start': 0, 'rev': 0}
+    elif ANCHOR_FFS:
+        fixedStarts = knownStarts_ffs
 
     # Assign to observation groups with identical core sequences
     obsGrps = assignObsGrps(trainCores, by = OBS_GRPS)
     uprots = []
     for grp in obsGrps.keys():
         uprots += obsGrps[grp]
-    uniqueProteins = uprots  
+    uniqueProteins = uprots
 
     # Create the predicted logos for the corresponding core sequences
     # while holding out the core seq grps
@@ -157,6 +168,10 @@ def main():
                 testProteins += [prot]
             else:
                 trainProteins += [prot]
+
+        if len(proteins_ho) == 1 and ANCHOR_B1H and proteins_ho[0][:4] == 'B1H.':
+                continue
+
         trainX = formGLM_trainX(fullX,startInd_ho,endIndex_ho)
         trainY = formGLM_Y(trainProteins, nDoms)
         trainW = formGLM_trainW(trainPWMs, trainProteins, nDoms, start, rev)
@@ -179,7 +194,6 @@ def main():
             assert len(pred_pwms[p]) == len(test_pwms_ali[p])
 
     print("Ran in %.2f seconds" %(time.time()-startTime))
- 
     pccTabfile = mainOutDir+'/pccTable_underS_holdOneOut.txt'
     makePCCtable(test_pwms_ali, pred_pwms, trainCores, pccTabfile)
     makePWMtab(pred_pwms,mainOutDir+'/pwms_pred_holdOneOut.txt')
