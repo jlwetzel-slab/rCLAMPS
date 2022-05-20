@@ -128,7 +128,7 @@ def main():
     
     # Remove examples where the known/stated fixed starting position
     # would make the pwm too short for the number of arrays annotated as binding
-    knownStarts_ffs = readSeedAlignment(SEED_FILE, include = pwms.keys())
+    knownStarts_ffs = readSeedAlignment(SEED_FILE, include = trainPWMs.keys())
     for p in knownStarts_ffs.keys():
         if len(trainPWMs[p]) < knownStarts_ffs[p]['start']+(MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
             #print p, core[p], nDoms[p], len(pwms[p])
@@ -139,7 +139,7 @@ def main():
     if ANCHOR_B1H:
         # Anchor based on the single-domain B1H data
         fixedStarts = {}
-        for p in core.keys():
+        for p in trainCores.keys():
             if p[:4] == 'B1H.':
                 fixedStarts[p] = {'start': 0, 'rev': 0}
     elif ANCHOR_FFS:
@@ -169,7 +169,7 @@ def main():
             else:
                 trainProteins += [prot]
 
-        if len(proteins_ho) == 1 and ANCHOR_B1H and proteins_ho[0][:4] == 'B1H.':
+        if len(testProteins) == 1 and ANCHOR_B1H and testProteins[0][:4] == 'B1H.':
                 continue
 
         trainX = formGLM_trainX(fullX,startInd_ho,endIndex_ho)
@@ -199,6 +199,7 @@ def main():
     makePWMtab(pred_pwms,mainOutDir+'/pwms_pred_holdOneOut.txt')
     makePWMtab(test_pwms_ali,mainOutDir+'/pwms_testAli_holdOneOut.txt')
 
+    print len(test_pwms_ali), len(pred_pwms)
     # Make predicted logos from the hold-one-out training
     if MAKE_LOGOS:
         print "Generating the logos from hold-one-out training"

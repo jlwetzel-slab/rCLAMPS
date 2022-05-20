@@ -29,8 +29,8 @@ MWID = 4
 RIGHT_OLAP = 1
 ANCHOR_B1H = True
 
-MODEL_FILE = '../my_results/zf-C2H2_100_25_seedB1H/result.pickle'
-OUT_DIR = '../my_results/zf-C2H2_100_25_seedB1H/plots/'
+MODEL_FILE = '../my_results/zf-C2H2_100_15_seedB1H/result.pickle'
+OUT_DIR = '../my_results/zf-C2H2_100_15_seedB1H/plots/'
 
 #MODEL_FILE = '../my_results/zf-C2H2_ffsOnly_iter1/result.pickle'
 #OUT_DIR = '../my_results/zf-C2H2_ffsOnly_iter1/plots/'
@@ -65,7 +65,7 @@ def main():
     # would make the pwm too short for the number of arrays annotated as binding
     knownStarts_ffs = readSeedAlignment(SEED_FILE, include = pwms.keys())
     for p in knownStarts_ffs.keys():
-        if len(pwms[p]) < knownStarts_ffs[p]['start']+(mWid-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
+        if len(pwms[p]) < knownStarts_ffs[p]['start']+(MWID-RIGHT_OLAP)*nDoms[p]+RIGHT_OLAP:
             #print p, core[p], nDoms[p], len(pwms[p])
             del nDoms[p]
             del core[p]
@@ -95,7 +95,7 @@ def main():
     # Exlcude alignment logos for the B1H single-finger examples
     if ANCHOR_B1H:
         for p in core.keys():
-            if p[0][:4] == 'B1H.':
+            if p[:4] == 'B1H.':
                 del core[p]
                 del pwms[p]
                 del rev[opt][p]
