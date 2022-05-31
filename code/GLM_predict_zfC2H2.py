@@ -31,6 +31,7 @@ ANCHOR_B1H = True
 
 MODEL_FILE = '../my_results/zf-C2H2_100_15_seedB1H/result.pickle'
 OUT_DIR = '../my_results/zf-C2H2_100_15_seedB1H/plots/'
+TAB_DIR = '../my_results/zf-C2H2_100_15_seedB1H/'
 
 #MODEL_FILE = '../my_results/zf-C2H2_ffsOnly_iter1/result.pickle'
 #OUT_DIR = '../my_results/zf-C2H2_ffsOnly_iter1/plots/'
@@ -51,6 +52,8 @@ def main():
 
     pwms, core, edges, edges_hmmPos, aaPosList = \
         getPrecomputedInputs_zfC2H2(rescalePWMs = True, ffsOnly = False)
+    start = start[opt]
+    rev = rev[opt]
     
     # Remove examples where PWMs that are too short for the number of domains
     nDoms = {}
@@ -92,17 +95,17 @@ def main():
     if reorient[opt]:
         flipAli = True
 
-    # Exlcude alignment logos for the B1H single-finger examples
-    if ANCHOR_B1H:
-        for p in core.keys():
-            if p[:4] == 'B1H.':
-                del core[p]
-                del pwms[p]
-                del rev[opt][p]
-                del start[opt][p]
-                del nDoms[p]
+    # Get the PWM alignments inferred for the non-B1H, multi-finger ZF arrays
+    fout = open(TAB_DIR+'registrationInfo.txt', 'w')
+    fout.write('prot\tstart\trev\n')
+    for p in sorted(start.keys()):
+        if p[:4] != 'B1H.':
+            #print p,start[p], rev[p]
+            fout.write('%s\t%d\t%d\n' %(p,start[p],rev[p]))
+    fout.close()
 
-    aliPWMS = getAlignedPWMs_multiDomain(getOrientedPWMs(pwms, rev[opt]), core, start[opt],
+    #"""
+    aliPWMS = getAlignedPWMs_multiDomain(getOrientedPWMs(pwms, rev), core, start,
                                          nDoms, flipAli = flipAli)
     #for k in aliPWMS.keys():
     #    print k, len(aliPWMS[k])
@@ -112,6 +115,7 @@ def main():
     if not os.path.exists(logoDir):
         os.makedirs(logoDir)
     makeAllLogos(aliPWMS, core, logoDir)
+    #"""
 
 
 if __name__ == '__main__':
