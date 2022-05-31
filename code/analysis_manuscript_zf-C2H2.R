@@ -23,50 +23,99 @@ MWID <- '4'
 AMINO <- c('A','C','D','E','F','G','H','I','K','L',
            'M','N','P','Q','R','S','T','V','W','Y')
 
-inDir <- paste0('../my_results/zf-C2H2_100_25_seedFFSall_noRescale/')
+inDir <- paste0('../my_results/zf-C2H2_100_15_seedB1H/')
+#inDir <- paste0('../my_results/zf-C2H2_100_25_seedFFSall_noRescale/')
 #inDir <- paste0('../my_results/zf-C2H2_100_25_seedFFSall/')
 #inDir <- paste0('../my_results/zf-C2H2_ffsOnly_iter1/')
 infile <- paste0(inDir,'pccTable_underS_holdOneOut.txt')
 outdir <- paste0(inDir, 'plots/')
 dir.create(outdir,showWarnings = FALSE,recursive = TRUE)
 
+makePCCgeTable <- function(fitInfo, icThresh) {
+  # Trim the low IC edges from aligned experimental PWMs
+  pwmTrim <- data.table(prot = unique(fitInfo$prot))
+  pwmTrim$start <- sapply(pwmTrim$prot, function(x) {min(which(fitInfo[prot == x]$ic.exp >= icThresh))})
+  pwmTrim$end <- sapply(pwmTrim$prot, function(x) {max(which(fitInfo[prot == x]$ic.exp >= icThresh))})
+  fitInfo <- merge(fitInfo, pwmTrim, by = 'prot')
+  fitInfo <- fitInfo[pos >= start & pos <= end]
+  
+  # Make cumulative table for percentage of columns with PCC >= x
+  pcc <- c()
+  fracPCCge <- c()
+  fracPCCge.ffs <- c()
+  fracPCCge.cbp <- c()
+  colType <- c()
+  for (x in seq(-1,1, by = 0.01)) {
+    pcc <- c(pcc, x)
+    fracPCCge <- c(fracPCCge,nrow(fitInfo[pcc >= x])/nrow(fitInfo))
+    fracPCCge.ffs <- c(fracPCCge.ffs,nrow(fitInfo[pcc >= x & dset == 'ffs'])/nrow(fitInfo[dset == 'ffs']))
+    fracPCCge.cbp <- c(fracPCCge.cbp,nrow(fitInfo[pcc >= x & dset == 'cisBP'])/nrow(fitInfo[dset == 'cisBP']))
+    colType <-  c(colType,'hold-one-out')
+  }
+  fracPCCge.tab <- data.table(pcc = pcc, fracPCCge = fracPCCge, colType = colType, dset = 'all')
+  tmp <- data.table(pcc = pcc, fracPCCge = fracPCCge.ffs, colType = colType, dset = 'ffs')
+  fracPCCge.tab <- rbind(fracPCCge.tab, tmp)
+  tmp <- data.table(pcc = pcc, fracPCCge = fracPCCge.cbp, colType = colType, dset = 'cisBP')
+  fracPCCge.tab <- rbind(fracPCCge.tab, tmp)
+  list("fitInfo" = fitInfo, "pccGEtab" = fracPCCge.tab)
+}
+
+
 # Fit when using strict holdout validation setup
 fitInfo <- fread(infile)
 fitInfo$domPos <- (fitInfo$pos-1)%%3
-fitInfo$pos <- factor(fitInfo$pos)
 fitInfo$domPos <- factor(fitInfo$domPos)
 fitInfo$pccAgree <- ifelse(fitInfo$pcc >= 0.5, TRUE, FALSE)
 fitInfo$testType <- 'hold-one-out'
+fitInfo$dset <- ifelse(grepl("^T", fitInfo$prot), "cisBP", "ffs")
 
-# Make cumulative plot with percentage of columns with PCC >= x
-pcc <- c()
-fracPCCge <- c()
-colType <- c()
-for (x in seq(-1,1, by = 0.01)) {
-  pcc <- c(pcc, x)
-  fracPCCge <- c(fracPCCge,nrow(fitInfo[pcc >= x])/nrow(fitInfo))
-  colType <-  c(colType,'hold-one-out')
-}
-fracPCCge.tab <- data.table(pcc = pcc, fracPCCge = fracPCCge, colType = colType)
+trimRes.0 <- makePCCgeTable(fitInfo, icThresh = 0)
+trimRes.25 <- makePCCgeTable(fitInfo, icThresh = 0.25)
+trimRes.4 <- makePCCgeTable(fitInfo, icThresh = 0.4)
+
+
+fitInfo.trim.0 <- trimRes.0[["fitInfo"]]
+fracPCCge.tab.trim.0 <- trimRes.0[["pccGEtab"]]
+fitInfo.trim.25 <- trimRes.25[["fitInfo"]]
+fracPCCge.tab.trim.25 <- trimRes.25[["pccGEtab"]]
 
 # Figure 2 (left)
-g <- ggplot(fracPCCge.tab[colType == 'hold-one-out'], aes(x = pcc, y = fracPCCge)) + 
+g <- ggplot(fracPCCge.tab.trim.0, aes(x = pcc, y = fracPCCge, col = dset)) + 
   geom_line(size = 1) + 
   #geom_point(data = fracPCCge.tab[pcc == 0.5], shape = 2) +
   geom_vline(xintercept = 0.5, lty = 'dashed') +
   #geom_hline(yintercept = 0.95, lty = 'dashed') +
-  #scale_color_brewer("", palette = 'Dark2') + 
+  scale_color_brewer("", palette = 'Dark2') + 
   labs(x = "PCC", y = "Fraction of columns with PCC >= x") +
   theme_bw()
-ggsave(plot = g, file = paste0(outdir, 'Figure2_left.pdf'),height = 4, width = 4)
+ggsave(plot = g, file = paste0(outdir, 'Figure2_left.pdf'),height = 4, width = 5)
+
+g <- ggplot(fracPCCge.tab.trim.25, aes(x = pcc, y = fracPCCge, col = dset)) + 
+  geom_line(size = 1) + 
+  #geom_point(data = fracPCCge.tab[pcc == 0.5], shape = 2) +
+  geom_vline(xintercept = 0.5, lty = 'dashed') +
+  #geom_hline(yintercept = 0.95, lty = 'dashed') +
+  scale_color_brewer("", palette = 'Dark2') + 
+  labs(x = "PCC", y = "Fraction of columns with PCC >= x") +
+  theme_bw()
+ggsave(plot = g, file = paste0(outdir, 'Figure2_left_trimIC_0.25.pdf'),height = 4, width = 5)
 
 # Figure 2 (right)
-g <- ggplot(fitInfo[testType == 'hold-one-out'], aes(x = domPos, y = pcc)) +
+fitInfo$pos <- factor(fitInfo$pos)
+g <- ggplot(fitInfo.trim.0, aes(x = domPos, y = pcc)) +
   geom_lv(color = 'black', fill = "gray20", outlier.size = 1, alpha = 0.3) + 
   geom_hline(yintercept = 0.5, lty = 'dashed') +
   labs(x = "Binding site position", y = "PCC between predicted and actual") +
   theme_classic()
 ggsave(plot = g, file = paste0(outdir, 'Figure2_right.pdf'),height = 4, width = 4)
+
+fitInfo$pos <- factor(fitInfo$pos)
+g <- ggplot(fitInfo.trim.25, aes(x = domPos, y = pcc)) +
+  geom_lv(color = 'black', fill = "gray20", outlier.size = 1, alpha = 0.3) + 
+  geom_hline(yintercept = 0.5, lty = 'dashed') +
+  labs(x = "Binding site position", y = "PCC between predicted and actual") +
+  theme_classic()
+ggsave(plot = g, file = paste0(outdir, 'Figure2_right_trimIC_0.25.pdf'),height = 4, width = 4)
 
 ###############################
 ## 
