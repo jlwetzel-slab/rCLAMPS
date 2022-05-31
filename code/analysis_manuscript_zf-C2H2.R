@@ -28,6 +28,7 @@ inDir <- paste0('../my_results/zf-C2H2_100_15_seedB1H/')
 #inDir <- paste0('../my_results/zf-C2H2_100_25_seedFFSall/')
 #inDir <- paste0('../my_results/zf-C2H2_ffsOnly_iter1/')
 infile <- paste0(inDir,'pccTable_underS_holdOneOut.txt')
+aliFile <- paste0(inDir,'registrationInfo.txt')
 outdir <- paste0(inDir, 'plots/')
 dir.create(outdir,showWarnings = FALSE,recursive = TRUE)
 
@@ -59,7 +60,6 @@ makePCCgeTable <- function(fitInfo, icThresh) {
   fracPCCge.tab <- rbind(fracPCCge.tab, tmp)
   list("fitInfo" = fitInfo, "pccGEtab" = fracPCCge.tab)
 }
-
 
 # Fit when using strict holdout validation setup
 fitInfo <- fread(infile)
@@ -116,6 +116,12 @@ g <- ggplot(fitInfo.trim.25, aes(x = domPos, y = pcc)) +
   labs(x = "Binding site position", y = "PCC between predicted and actual") +
   theme_classic()
 ggsave(plot = g, file = paste0(outdir, 'Figure2_right_trimIC_0.25.pdf'),height = 4, width = 4)
+
+# Alignment info 
+aliInfo <- fread(aliFile)  # The alignment inferred by the procedure
+aliFFS <- fread('../flyFactorSurvey/enuameh/enuameh_perFinger_processedProt_startPosInfo.txt')  # Alignment according to FFS
+aliComp <- merge(aliFFS, aliInfo, by = 'prot')[prot %in% fitInfo.trim.25$prot]
+nrow(aliComp[start.x == start.y])/nrow(aliComp)
 
 ###############################
 ## 

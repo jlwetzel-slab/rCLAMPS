@@ -28,7 +28,20 @@ specs.protInfo <- specs.protInfo[order(prot, zfNum)]
 write.table(specs.protInfo, file = 'enuameh_perFinger_processedProtInfo.txt', 
             sep = '\t',quote = FALSE, row.names = FALSE)
 
+# Output the per-finger PWMs as a table with the maximum finger first
+# and removing the overlapping columns for adjacent fingers to align
+# directly to the full PWMs (i.e. from flyFactor_dataset_A.txt)
+specs.revFingerOrder <- specs[order(prot,-zfNum,motifPos)]
+specs.revFingerOrder <- specs.revFingerOrder[,c("prot","motif","motifPos","strand","A","C","G","T"),with=FALSE]
+specs.revFingerOrder <- specs.revFingerOrder[!duplicated(specs.revFingerOrder)]
+write.table(specs.revFingerOrder, file = 'enuameh_perFinger_PWMs_reverseFingerOrder.txt', 
+            sep = '\t',quote = FALSE, row.names = FALSE)
+
 # Record the correct start/orientation information for the FFS proteins
+#### NOTE:  There are inconsistencies in the strand given by Supplemental Dataset 1
+####        vs. the correct strand in the corresponding PWM from flyfactor_dataset_A.txt, so 
+####        only the start position is useful here currently.  Thus we directly align
+####        each pair of PWMs to get the correct orientations.
 startInfo <- specs[,.(start = min(motifPos) - 1, rev = ifelse(strand == -1, 1, 0)), by = 'prot']
 startInfo <- startInfo[!duplicated(startInfo)]
 write.table(startInfo, file = 'enuameh_perFinger_processedProt_startPosInfo.txt', 
