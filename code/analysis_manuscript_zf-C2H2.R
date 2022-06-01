@@ -130,6 +130,7 @@ if (FALSE) {
   nrow(aliComp2[start.x == start.y])/nrow(aliComp2)
   nrow(aliComp2[start.x == start.y & rev.x == rev.y])/nrow(aliComp2)
   
+  x <- merge(aliFFS2, aliFFS1, by = 'prot')
   x <- merge(merge(aliFFS2, aliFFS1, by = 'prot'), aliInfo, by = 'prot')
   nrow(x[start.x == start.y & start.y == start])/nrow(x)
   nrow(x[start.y == start])/nrow(x)
