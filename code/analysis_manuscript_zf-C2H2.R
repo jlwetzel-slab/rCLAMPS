@@ -119,9 +119,14 @@ ggsave(plot = g, file = paste0(outdir, 'Figure2_right_trimIC_0.25.pdf'),height =
 
 # Alignment info 
 aliInfo <- fread(aliFile)  # The alignment inferred by the procedure
-aliFFS <- fread('../flyFactorSurvey/enuameh/enuameh_perFinger_processedProt_startPosInfo.txt')  # Alignment according to FFS
-aliComp <- merge(aliFFS, aliInfo, by = 'prot')[prot %in% fitInfo.trim.25$prot]
-nrow(aliComp[start.x == start.y])/nrow(aliComp)
+
+aliFFS1 <- fread('../flyFactorSurvey/enuameh/enuameh_perFinger_processedProt_startPosInfo.txt')  # Alignment according to FFS
+aliComp1 <- merge(aliFFS1, aliInfo, by = 'prot')[prot %in% fitInfo.trim.25$prot]
+nrow(aliComp1[start.x == start.y])/nrow(aliComp1)
+
+aliFFS2 <- fread('../flyFactorSurvey/enuameh/enuameh_startPosInfo.txt')  # Alignment optimal alignment with FFS
+aliComp2 <- merge(aliFFS2, aliInfo, by = 'prot')[prot %in% fitInfo.trim.25$prot]
+nrow(aliComp2[start.x == start.y & rev.x == rev.y])/nrow(aliComp2)
 
 ###############################
 ## 
