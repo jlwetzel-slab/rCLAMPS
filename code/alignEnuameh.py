@@ -51,7 +51,7 @@ def main():
             print pwms_full[p]
             print pwms_revFingOrder[p]
             print p, score, -shift, int(ori)
-        fout.write('%s\t%d\t%d\n' %(p,shift,int(ori)))
+        fout.write('%s\t%d\t%d\n' %(p,-shift,int(ori)))
     fout.close()
 
 
