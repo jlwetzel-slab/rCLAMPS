@@ -2,7 +2,8 @@
 # full-length Enuameh PWMs by finding the optimal alignment of 
 # each to its single-finger concatenated version going in reverse-finger order
 
-from matAlignLib import comp_matrices, matrix_compl, information_content
+import numpy as np
+from matAlignLib import comp_matrices
 from gibbsAlign_GLM import getPrecomputedInputs_zfC2H2
 
 def getPWMsRevFingOrder(fname):
@@ -42,10 +43,14 @@ def main():
         pWid = len(pwms_full[p])
         
         # Align the annotated finger PWM to the 
-        score, shift, ori = comp_matrices(pwms_full[p], pwms_revFingOrder[p],
-                                          minWidthM2 = len(pwms_revFingOrder[p]), 
-                                          oneSided=True)
-        #print p, shift, int(ori)
+        score, shift, ori = comp_matrices(pwms_revFingOrder[p], pwms_full[p])
+        #score, shift, ori = comp_matrices(pwms_revFingOrder[p], pwms_full[p], 
+        #                                  minWidthM2 = len(pwms_revFingOrder[p]), 
+        #                                  oneSided=True)
+        if p == 'CG10267':
+            print pwms_full[p]
+            print pwms_revFingOrder[p]
+            print p, score, -shift, int(ori)
         fout.write('%s\t%d\t%d\n' %(p,shift,int(ori)))
     fout.close()
 
