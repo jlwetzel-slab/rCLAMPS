@@ -31,6 +31,7 @@ def getPWMsRevFingOrder(fname):
     return pwms
 
 def main():
+    print "Hello"
     pwms_full, _, _, _, _ = \
         getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = True, includeB1H = False)
     pwms_revFingOrder = getPWMsRevFingOrder('../flyFactorSurvey/enuameh/enuameh_perFinger_PWMs_reverseFingerOrder.txt')
