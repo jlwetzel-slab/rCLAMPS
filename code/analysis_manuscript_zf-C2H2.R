@@ -124,9 +124,16 @@ aliFFS1 <- fread('../flyFactorSurvey/enuameh/enuameh_perFinger_processedProt_sta
 aliComp1 <- merge(aliFFS1, aliInfo, by = 'prot')[prot %in% fitInfo.trim.25$prot]
 nrow(aliComp1[start.x == start.y])/nrow(aliComp1)
 
-aliFFS2 <- fread('../flyFactorSurvey/enuameh/enuameh_startPosInfo.txt')  # Alignment optimal alignment with FFS
-aliComp2 <- merge(aliFFS2, aliInfo, by = 'prot')[prot %in% fitInfo.trim.25$prot]
-nrow(aliComp2[start.x == start.y & rev.x == rev.y])/nrow(aliComp2)
+if (FALSE) {
+  aliFFS2 <- fread('../flyFactorSurvey/enuameh/enuameh_startPosInfo.txt')  # Alignment optimal alignment with FFS
+  aliComp2 <- merge(aliFFS2, aliInfo, by = 'prot')[prot %in% fitInfo.trim.25$prot]
+  nrow(aliComp2[start.x == start.y])/nrow(aliComp2)
+  nrow(aliComp2[start.x == start.y & rev.x == rev.y])/nrow(aliComp2)
+  
+  x <- merge(merge(aliFFS2, aliFFS1, by = 'prot'), aliInfo, by = 'prot')
+  nrow(x[start.x == start.y & start.y == start])/nrow(x)
+  nrow(x[start.y == start])/nrow(x)
+}
 
 ###############################
 ## 
