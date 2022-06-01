@@ -101,7 +101,6 @@ g <- ggplot(fracPCCge.tab.trim.25, aes(x = pcc, y = fracPCCge, col = dset)) +
 ggsave(plot = g, file = paste0(outdir, 'Figure2_left_trimIC_0.25.pdf'),height = 4, width = 5)
 
 # Figure 2 (right)
-fitInfo$pos <- factor(fitInfo$pos)
 g <- ggplot(fitInfo.trim.0, aes(x = domPos, y = pcc)) +
   geom_lv(color = 'black', fill = "gray20", outlier.size = 1, alpha = 0.3) + 
   geom_hline(yintercept = 0.5, lty = 'dashed') +
@@ -109,7 +108,6 @@ g <- ggplot(fitInfo.trim.0, aes(x = domPos, y = pcc)) +
   theme_classic()
 ggsave(plot = g, file = paste0(outdir, 'Figure2_right.pdf'),height = 4, width = 4)
 
-fitInfo$pos <- factor(fitInfo$pos)
 g <- ggplot(fitInfo.trim.25, aes(x = domPos, y = pcc)) +
   geom_lv(color = 'black', fill = "gray20", outlier.size = 1, alpha = 0.3) + 
   geom_hline(yintercept = 0.5, lty = 'dashed') +
@@ -119,23 +117,7 @@ ggsave(plot = g, file = paste0(outdir, 'Figure2_right_trimIC_0.25.pdf'),height =
 
 # Alignment info 
 aliInfo <- fread(aliFile)  # The alignment inferred by the procedure
+aliFFS <- fread('../flyFactorSurvey/enuameh/enuameh_startPosInfo.txt')  # Alignment optimal alignment with FFS
+aliComp <- merge(aliFFS, aliInfo, by = 'prot')[prot %in% fitInfo$prot]
+nrow(aliComp[start.x == start.y & rev.x == rev.y])/nrow(aliComp)
 
-aliFFS1 <- fread('../flyFactorSurvey/enuameh/enuameh_perFinger_processedProt_startPosInfo.txt')  # Alignment according to FFS
-aliComp1 <- merge(aliFFS1, aliInfo, by = 'prot')[prot %in% fitInfo.trim.25$prot]
-nrow(aliComp1[start.x == start.y])/nrow(aliComp1)
-
-if (FALSE) {
-  aliFFS2 <- fread('../flyFactorSurvey/enuameh/enuameh_startPosInfo.txt')  # Alignment optimal alignment with FFS
-  aliComp2 <- merge(aliFFS2, aliInfo, by = 'prot')[prot %in% fitInfo.trim.25$prot]
-  nrow(aliComp2[start.x == start.y])/nrow(aliComp2)
-  nrow(aliComp2[start.x == start.y & rev.x == rev.y])/nrow(aliComp2)
-  
-  x <- merge(aliFFS2, aliFFS1, by = 'prot')
-  x <- merge(merge(aliFFS2, aliFFS1, by = 'prot'), aliInfo, by = 'prot')
-  nrow(x[start.x == start.y & start.y == start])/nrow(x)
-  nrow(x[start.y == start])/nrow(x)
-}
-
-###############################
-## 
-###############################
