@@ -22,20 +22,16 @@ PROT_SEQ_FILE = '../precomputedInputs/zf-C2H2/prot_seq_fewZFs_hmmerOut_clustered
 PROT_SEQ_FILE_FFS = '../flyFactorSurvey/enuameh/enuameh_perFinger_processedProtInfo.txt'
 PWM_INPUT_TABLE = '../precomputedInputs/zf-C2H2/pwmTab_fewZFs_clusteredOnly_removeTooShort.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
 PWM_INPUT_FILE_FFS = '../flyFactorSurvey/enuameh/flyfactor_dataset_A.txt'
-SEED_FILE = '../flyFactorSurvey/enuameh/enuameh_perFinger_processedProt_startPosInfo.txt'
+SEED_FILE = '../flyFactorSurvey/enuameh/enuameh_startPosInfo.txt'
 
 OBS_GRPS = 'grpIDcore'
 MWID = 4
 RIGHT_OLAP = 1
-ANCHOR_B1H = True
+ANCHOR_B1H = False
 
-MODEL_FILE = '../my_results/zf-C2H2_100_15_seedB1H/result.pickle'
-OUT_DIR = '../my_results/zf-C2H2_100_15_seedB1H/plots/'
-TAB_DIR = '../my_results/zf-C2H2_100_15_seedB1H/'
-
-#MODEL_FILE = '../my_results/zf-C2H2_ffsOnly_iter1/result.pickle'
-#OUT_DIR = '../my_results/zf-C2H2_ffsOnly_iter1/plots/'
-
+TAB_DIR = '../my_results/zf-C2H2_100_25_seedFFSrand5/'
+MODEL_FILE = TAB_DIR+'result.pickle'
+OUT_DIR = TAB_DIR+'plots/'
 
 def main():
 
@@ -51,7 +47,7 @@ def main():
 
 
     pwms, core, edges, edges_hmmPos, aaPosList = \
-        getPrecomputedInputs_zfC2H2(rescalePWMs = True, ffsOnly = False)
+        getPrecomputedInputs_zfC2H2(rescalePWMs=False,ffsOnly=False,includeB1H=False)
     start = start[opt]
     rev = rev[opt]
     
@@ -74,14 +70,6 @@ def main():
             del core[p]
             del pwms[p]
             del knownStarts_ffs[p]
-    if ANCHOR_B1H:
-        # Anchor based on the single-domain B1H data
-        fixedStarts = {}
-        for p in core.keys():
-            if p[:4] == 'B1H.':
-                fixedStarts[p] = {'start': 0, 'rev': 0}
-    elif ANCHOR_FFS:
-        fixedStarts = knownStarts_ffs
 
     # Assign to observation groups with identical core sequences
     obsGrps = assignObsGrps(core, by = OBS_GRPS)

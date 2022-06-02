@@ -30,14 +30,14 @@ RIGHT_OLAP = 1
 RESCALE_PWMS = True
 MAKE_LOGOS = True
 OBS_GRPS = 'grpIDcore'
-ANCHOR_B1H = True
+ANCHOR_B1H = False
 
 # Input files for PWMs and protein info
 PROT_SEQ_FILE = '../precomputedInputs/zf-C2H2/prot_seq_fewZFs_hmmerOut_clusteredOnly_removeTooShort.txt'  # Input protein domain file subsetted to relvant amino acid contacting positions
 PROT_SEQ_FILE_FFS = '../flyFactorSurvey/enuameh/enuameh_perFinger_processedProtInfo.txt'
 PWM_INPUT_TABLE = '../precomputedInputs/zf-C2H2/pwmTab_fewZFs_clusteredOnly_removeTooShort.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
 PWM_INPUT_FILE_FFS = '../flyFactorSurvey/enuameh/flyfactor_dataset_A.txt'
-SEED_FILE = '../flyFactorSurvey/enuameh/enuameh_perFinger_processedProt_startPosInfo.txt'
+SEED_FILE = '../flyFactorSurvey/enuameh/enuameh_startPosInfo.txt'
 
 def makePCCtable(exp, pred, core, fname):
     # Compute the per-position pearson correlation coefficients
@@ -91,8 +91,7 @@ def predictSpecificity_array_ZF(fullX, model, startInd, arrayLen):
     return np.array(pwm)
 
 def main():
-
-    mainOutDir = '../my_results/zf-C2H2_100_15_seedB1H/'
+    mainOutDir = '../my_results/zf-C2H2_100_25_seedFFSrand5/'
 
     # Obtain Model
     filename = mainOutDir+'result.pickle'
@@ -109,8 +108,7 @@ def main():
 
     # Read data
     trainPWMs, trainCores, edges, edges_hmmPos, aaPosList = \
-        getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False,
-                                    includeB1H = True)
+        getPrecomputedInputs_zfC2H2(rescalePWMs=False,ffsOnly=False,includeB1H=False)
 
     print edges
     print edges_hmmPos
@@ -136,14 +134,6 @@ def main():
             del trainCores[p]
             del trainPWMs[p]
             del knownStarts_ffs[p]
-    if ANCHOR_B1H:
-        # Anchor based on the single-domain B1H data
-        fixedStarts = {}
-        for p in trainCores.keys():
-            if p[:4] == 'B1H.':
-                fixedStarts[p] = {'start': 0, 'rev': 0}
-    elif ANCHOR_FFS:
-        fixedStarts = knownStarts_ffs
 
     # Assign to observation groups with identical core sequences
     obsGrps = assignObsGrps(trainCores, by = OBS_GRPS)
@@ -169,6 +159,7 @@ def main():
             else:
                 trainProteins += [prot]
 
+        # If anchoring on the B1H data, skip that data in HOO vaildation testing
         if len(testProteins) == 1 and ANCHOR_B1H and testProteins[0][:4] == 'B1H.':
                 continue
 

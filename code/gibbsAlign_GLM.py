@@ -23,24 +23,25 @@ import numpy as np
 import time, pickle, argparse, math, multiprocessing
 
 DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
-OUTPUT_DIRECTORY = '../my_results/zf-C2H2_100_15_seedB1H/'  # Set to any output directory you want
+OUTPUT_DIRECTORY = '../my_results/zf-C2H2_100_25_seedFFSrand5/'  # Set to any output directory you want
 #DOMAIN_TYPE = 'homeodomain' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
 #OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
 ORIGINAL_INPUT_FORMAT = False         # Set to True for reproducion of homeodomain manuscript model
                                      # Set to False to give inputs in format from ../precomputedInputs/ 
 RUN_GIBBS = True                     # Set to False if only want to troubleshoot prior to running Gibbs sampler
 HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
-EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing
+EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing .. N/A for ZF testing
 MWID = 4               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
 #MWID = 6
-ANCHOR_B1H = False
 if DOMAIN_TYPE == 'zf-C2H2':
-    RIGHT_OLAP = 1     # Number of 3' bases in contact map overlpping with previous domain instance (if multi-domain) - 1 for zf-C2H2
-    ANCHOR_B1H = True
+    RIGHT_OLAP = 1     # Number of 3' bases in contact map overlapping with previous domain instance (if multi-domain) - 1 for zf-C2H2
+    ANCHOR_B1H = False     # Set to true to anchor alignment based on single-finger B1H data for ZFs (Najafabadi, 2015, Nat. Biotech.)
+    ANCHOR_FFS = True      # Set to true to anchor alignment based on fly factor survey for ZFs (Enuameh, 2013, Genome Res.)
+    ANCHOR_SUBSET_SZ = 5   # The number of examples to sample randomly for the anchor subset for ZFs
 else:
     RIGHT_OLAP = 0     # No domain base overlap for single-domain proteins
 RAND_SEED = 382738375  # Numpy random seed for used for manuscript results
-MAXITER = 15           # Maximum number of iterations per Markov chain
+MAXITER = 25           # Maximum number of iterations per Markov chain
 N_CHAINS = 100         # Number of Markov chains to use
 INIT_ORACLE = False    # Deprecated ... was used to compare to previous Naive Bayes implementation
 SAMPLE = 100           # Integer to multiply PWM columns by when converting to counts
@@ -75,7 +76,7 @@ else:
         PWM_INPUT_TABLE = '../precomputedInputs/zf-C2H2/pwmTab_fewZFs_clusteredOnly_removeTooShort.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
         PWM_INPUT_FILE_FFS = '../flyFactorSurvey/enuameh/flyfactor_dataset_A.txt'
         CONTACT_MAP = '../precomputedInputs/zf-C2H2/zf-C2H2_contactMap.txt'  # A contact map for the domain family
-        SEED_FILE = '../flyFactorSurvey/enuameh/enuameh_perFinger_processedProt_startPosInfo.txt'    # Initial seeds based on Enuameh et al. 2013
+        SEED_FILE = '../flyFactorSurvey/enuameh/enuameh_startPosInfo.txt'    # Initial seeds based on Enuameh et al. 2013
 
 # Used by various functions - do not change these
 BASE = ['A','C','G','T']
@@ -1727,7 +1728,7 @@ def main():
         elif DOMAIN_TYPE == 'zf-C2H2':
             pwms, core, edges, edges_hmmPos, aaPosList = \
                 getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False,
-                                            includeB1H = True)
+                                            includeB1H = False)
     print edges
     print edges_hmmPos
     mWid = len(edges.keys())
@@ -1796,7 +1797,21 @@ def main():
                     fixedStarts[p] = {'start': 0, 'rev': 0}
         elif ANCHOR_FFS:
             fixedStarts = knownStarts_ffs
+            seedOptions = [k for k in fixedStarts.keys() if nDoms[k] >= 2]
+            seeds = [seedOptions[k] for k in np.random.random_integers(0,len(seedOptions)-1,ANCHOR_SUBSET_SZ)]
+            tmp = fixedStarts
+            fixedStarts = {k: tmp[k] for k in seeds}
+            fout = open(dir+'/seedsUsed.txt', 'w')
+            fout.write('prot\tstart\trev\n')
+            for k in sorted(fixedStarts.keys()):
+                fout.write('%s\t%d\t%d\n' %(k, fixedStarts[k]['start'], fixedStarts[k]['rev']))
+            fout.close()
+            #print fixedStarts
+            #print [core[k] for k in fixedStarts.keys()]
+            #print [nDoms[k] for k in fixedStarts.keys()]
 
+
+    #"""
     #print("number of proteins used", len(core.keys()))
     # Assign cores to similarity groups
     obsGrps = assignObsGrps(core, by = OBS_GRPS)
@@ -1840,7 +1855,6 @@ def main():
     
     print("We are using %d proteins in the gibbs sampling." %len(uniqueProteins))
 
-    #"""
     if RUN_GIBBS:
         print("Running %d markov chains ..." %N_CHAINS)
         startTime = time.time()
