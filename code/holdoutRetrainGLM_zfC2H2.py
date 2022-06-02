@@ -27,7 +27,6 @@ COMPL_BASE = {0:3, 1:2, 2:1, 3:0}
 
 MWID = 4  # Number of base positions in the PDSIM
 RIGHT_OLAP = 1
-RESCALE_PWMS = True
 MAKE_LOGOS = True
 OBS_GRPS = 'grpIDcore'
 ANCHOR_B1H = False
