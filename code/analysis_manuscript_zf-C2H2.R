@@ -23,7 +23,8 @@ MWID <- '4'
 AMINO <- c('A','C','D','E','F','G','H','I','K','L',
            'M','N','P','Q','R','S','T','V','W','Y')
 
-inDir <- paste0('../my_results/zf-C2H2_100_15_seedB1H/')
+inDir <- paste0('../my_results/zf-C2H2_100_25_seedFFSrand5/')
+#inDir <- paste0('../my_results/zf-C2H2_100_15_seedB1H/')
 #inDir <- paste0('../my_results/zf-C2H2_100_25_seedFFSall_noRescale/')
 #inDir <- paste0('../my_results/zf-C2H2_100_25_seedFFSall/')
 #inDir <- paste0('../my_results/zf-C2H2_ffsOnly_iter1/')
