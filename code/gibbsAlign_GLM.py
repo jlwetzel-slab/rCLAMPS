@@ -23,7 +23,7 @@ import numpy as np
 import time, pickle, argparse, math, multiprocessing
 
 DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
-OUTPUT_DIRECTORY = '../my_results/zf-C2H2_100_25_seedFFSrand5/'  # Set to any output directory you want
+OUTPUT_DIRECTORY = '../my_results/zf-C2H2_100_25_seedFFSrand10/'  # Set to any output directory you want
 #DOMAIN_TYPE = 'homeodomain' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
 #OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
 ORIGINAL_INPUT_FORMAT = False         # Set to True for reproducion of homeodomain manuscript model
@@ -37,7 +37,7 @@ if DOMAIN_TYPE == 'zf-C2H2':
     RIGHT_OLAP = 1     # Number of 3' bases in contact map overlapping with previous domain instance (if multi-domain) - 1 for zf-C2H2
     ANCHOR_B1H = False     # Set to true to anchor alignment based on single-finger B1H data for ZFs (Najafabadi, 2015, Nat. Biotech.)
     ANCHOR_FFS = True      # Set to true to anchor alignment based on fly factor survey for ZFs (Enuameh, 2013, Genome Res.)
-    ANCHOR_SUBSET_SZ = 5   # The number of examples to sample randomly for the anchor subset for ZFs
+    ANCHOR_SUBSET_SZ = 10  # The number of examples to sample randomly for the anchor subset for ZFs
 else:
     RIGHT_OLAP = 0     # No domain base overlap for single-domain proteins
 RAND_SEED = 382738375  # Numpy random seed for used for manuscript results
