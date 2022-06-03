@@ -23,7 +23,7 @@ import numpy as np
 import time, pickle, argparse, math, multiprocessing
 
 DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
-OUTPUT_DIRECTORY = '../my_results/zf-C2H2_100_25_seedFFSrand10/'  # Set to any output directory you want
+OUTPUT_DIRECTORY = '../my_results/zf-C2H2_100_25_seedFFSdiverse6/'  # Set to any output directory you want
 #DOMAIN_TYPE = 'homeodomain' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
 #OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
 ORIGINAL_INPUT_FORMAT = False         # Set to True for reproducion of homeodomain manuscript model
@@ -37,7 +37,8 @@ if DOMAIN_TYPE == 'zf-C2H2':
     RIGHT_OLAP = 1     # Number of 3' bases in contact map overlapping with previous domain instance (if multi-domain) - 1 for zf-C2H2
     ANCHOR_B1H = False     # Set to true to anchor alignment based on single-finger B1H data for ZFs (Najafabadi, 2015, Nat. Biotech.)
     ANCHOR_FFS = True      # Set to true to anchor alignment based on fly factor survey for ZFs (Enuameh, 2013, Genome Res.)
-    ANCHOR_SUBSET_SZ = 10  # The number of examples to sample randomly for the anchor subset for ZFs
+    DIVERSE_ZF_SET = ['bowl','CG31670','ken','ovo','pho','Sp1']  # Set to None to seed with random ZFs instead
+    ANCHOR_SUBSET_SZ = 5  # The number of examples to sample randomly for the anchor subset for ZFs
 else:
     RIGHT_OLAP = 0     # No domain base overlap for single-domain proteins
 RAND_SEED = 382738375  # Numpy random seed for used for manuscript results
@@ -1797,10 +1798,13 @@ def main():
                     fixedStarts[p] = {'start': 0, 'rev': 0}
         elif ANCHOR_FFS:
             fixedStarts = knownStarts_ffs
-            seedOptions = [k for k in fixedStarts.keys() if nDoms[k] >= 2]
-            seeds = [seedOptions[k] for k in np.random.random_integers(0,len(seedOptions)-1,ANCHOR_SUBSET_SZ)]
             tmp = fixedStarts
-            fixedStarts = {k: tmp[k] for k in seeds}
+            if DIVERSE_ZF_SET is not None:
+                fixedStarts = {k: tmp[k] for k in DIVERSE_ZF_SET}
+            else:
+                seedOptions = [k for k in fixedStarts.keys() if nDoms[k] >= 2]
+                seeds = [seedOptions[k] for k in np.random.random_integers(0,len(seedOptions)-1,ANCHOR_SUBSET_SZ)]
+                fixedStarts = {k: tmp[k] for k in seeds}
             fout = open(dir+'/seedsUsed.txt', 'w')
             fout.write('prot\tstart\trev\n')
             for k in sorted(fixedStarts.keys()):
@@ -1851,7 +1855,8 @@ def main():
     assert len(uprots) == len(uniqueProteins)
     # So that uniqueProteins is in the same order as obsGrps keys
     uniqueProteins = uprots
-    print(len(fixedStarts))
+    #print(len(fixedStarts))
+    print fixedStarts
     
     print("We are using %d proteins in the gibbs sampling." %len(uniqueProteins))
 

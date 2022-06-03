@@ -29,7 +29,7 @@ MWID = 4
 RIGHT_OLAP = 1
 ANCHOR_B1H = False
 
-TAB_DIR = '../my_results/zf-C2H2_100_25_seedFFSrand10/'
+TAB_DIR = '../my_results/zf-C2H2_100_25_seedFFSdiverse6/'
 MODEL_FILE = TAB_DIR+'result.pickle'
 OUT_DIR = TAB_DIR+'plots/'
 
