@@ -90,7 +90,7 @@ def predictSpecificity_array_ZF(fullX, model, startInd, arrayLen):
     return np.array(pwm)
 
 def main():
-    mainOutDir = '../my_results/zf-C2H2_100_25_seedFFSdiverse6/'
+    mainOutDir = '../my_results/zf-C2H2_250_50_seedFFSdiverse6/'
 
     # Obtain Model
     filename = mainOutDir+'result.pickle'

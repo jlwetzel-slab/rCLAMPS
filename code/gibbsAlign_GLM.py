@@ -23,7 +23,7 @@ import numpy as np
 import time, pickle, argparse, math, multiprocessing
 
 DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
-OUTPUT_DIRECTORY = '../my_results/zf-C2H2_100_25_seedFFSdiverse6/'  # Set to any output directory you want
+OUTPUT_DIRECTORY = '../my_results/zf-C2H2_250_50_seedFFSdiverse6/'  # Set to any output directory you want
 #DOMAIN_TYPE = 'homeodomain' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
 #OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
 ORIGINAL_INPUT_FORMAT = False         # Set to True for reproducion of homeodomain manuscript model
@@ -42,8 +42,8 @@ if DOMAIN_TYPE == 'zf-C2H2':
 else:
     RIGHT_OLAP = 0     # No domain base overlap for single-domain proteins
 RAND_SEED = 382738375  # Numpy random seed for used for manuscript results
-MAXITER = 25           # Maximum number of iterations per Markov chain
-N_CHAINS = 100         # Number of Markov chains to use
+MAXITER = 50           # Maximum number of iterations per Markov chain
+N_CHAINS = 250         # Number of Markov chains to use
 INIT_ORACLE = False    # Deprecated ... was used to compare to previous Naive Bayes implementation
 SAMPLE = 100           # Integer to multiply PWM columns by when converting to counts
 OBS_GRPS = 'grpIDcore' # Perform group updates based on identical DNA-contacting protein residues
