@@ -4,7 +4,7 @@
 import numpy as np
 import re
 import os, sys
-from gibbsAlign_GLM import getHomeoboxData, makeAllLogos_multiDomain
+from gibbsAlign_GLM import getHomeoboxData, makeAllLogos
 from gibbsAlign_GLM import getTestProtsAndPWMs, getTrainPairsAndInfo
 from gibbsAlign_naiveBayes import getAlignedPWMs, getOrientedPWMs, reverseBaseOrient
 from gibbsAlign_naiveBayes import getCondModel, getLogLikelihood, getLLsum, sampleStartPos
@@ -124,6 +124,7 @@ def main():
     opt = np.argmax(score)
     print(opt)
 
+    """
     trSet = TR_SET
 
     # Create the to level output directory
@@ -237,6 +238,7 @@ def main():
             newFile = '_'.join([g,p_n08])+'_'+oldFile
             os.system('cp %s %s' %(oldPath+oldFile,newPath+newFile))
     fout.close()
+    """
 
 if __name__ == '__main__':
     main()
