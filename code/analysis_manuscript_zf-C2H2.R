@@ -119,7 +119,7 @@ ggsave(plot = g, file = paste0(outdir, 'Figure2_right_trimIC_0.25.pdf'),height =
 
 # Alignment info 
 aliInfo <- fread(aliFile)  # The alignment inferred by the procedure
-aliFFS <- fread('../flyFactorSurvey/enuameh/enuameh_startPosInfo.txt')  # Alignment optimal alignment with FFS
+aliFFS <- fread('../flyFactorSurvey/enuameh/enuameh_startPosInfo.txt')  # Optimal alignment with FFS
 aliComp <- merge(aliFFS, aliInfo, by = 'prot')[prot %in% fitInfo$prot]
 print(paste("We infer accurate registrations for", nrow(aliComp[start.x == start.y & rev.x == rev.y]),"out of",
             nrow(aliComp),"C2H2-ZFs with known registrations."))
