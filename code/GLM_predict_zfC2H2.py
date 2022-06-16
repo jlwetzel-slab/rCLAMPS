@@ -45,13 +45,7 @@ def main():
     opt = np.argmax(score)
     print(opt)
 
-    fout = open('chainScores.txt', 'w')
-    fout.write('chainNum\tscore\n')
-    for i, x in enumerate(score):
-        fout.write('%d\t%f\n' %(i, x))
-    fout.close()
 
-    """
     pwms, core, edges, edges_hmmPos, aaPosList = \
         getPrecomputedInputs_zfC2H2(rescalePWMs=False,ffsOnly=False,includeB1H=False)
     start = start[opt]
@@ -97,9 +91,8 @@ def main():
             #print p,start[p], rev[p]
             fout.write('%s\t%d\t%d\n' %(p,start[p],rev[p]))
     fout.close()
-    """
 
-    """
+    #"""
     aliPWMS = getAlignedPWMs_multiDomain(getOrientedPWMs(pwms, rev), core, start,
                                          nDoms, flipAli = flipAli)
     #for k in aliPWMS.keys():
@@ -110,7 +103,7 @@ def main():
     if not os.path.exists(logoDir):
         os.makedirs(logoDir)
     makeAllLogos(aliPWMS, core, logoDir)
-    """
+    #"""
 
 
 if __name__ == '__main__':
