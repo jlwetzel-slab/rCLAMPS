@@ -38,7 +38,7 @@ MWID = 6  # Number of base positions in the PDSIM
 RAND_SEED = 382738375 #78374223 # Random seed for reproducibilty
 N_CHAINS = 100
 
-MODEL_FILE = '../results/cisbp-chu/structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50.pickle'
+MODEL_FILE = '../results/cisbp-chuAll/structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50.pickle'
 
 def entropyBits(f):
     return -(f*np.log2(f)).sum()
@@ -124,7 +124,6 @@ def main():
     opt = np.argmax(score)
     print(opt)
 
-    """
     trSet = TR_SET
 
     # Create the to level output directory
@@ -238,7 +237,6 @@ def main():
             newFile = '_'.join([g,p_n08])+'_'+oldFile
             os.system('cp %s %s' %(oldPath+oldFile,newPath+newFile))
     fout.close()
-    """
 
 if __name__ == '__main__':
     main()
