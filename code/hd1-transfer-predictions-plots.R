@@ -1,6 +1,7 @@
 library(data.table)
 library(ggplot2)
 library(RColorBrewer)
+library(lvplot)
 rm(list = ls())
 
 RES_DIR <- '../results/cisbp-chu/structFixed1_grpHoldout_multinomial_ORACLEFalseChain100Iter15scaled50/transfer_test/fracID_fullDBD/'
@@ -812,6 +813,22 @@ g <- ggplot(res.noOlap.rfJoint.hd1, aes(x = transfer, y = pcc, fill = predType))
   theme_classic()
 ggsave(plot = g, file = paste0(RES_DIR, 'pcc_boxplots_rfJointOnly_hd1_byColType.pdf'),
        height = 4, width = 6)
+
+res.noOlap.rfJoint.hd1$predType <- plyr::mapvalues(res.noOlap.rfJoint.hd1$predType,
+                                                   from = c('model', 'model+nn','rf_extant','rf_joint'),
+                                                   to = c('de novo', 'hybrid','rf_extant','rf_joint'))
+g <- ggplot(res.noOlap.rfJoint.hd1[transfer == 'transfer\npossible' & predType %in% c('hybrid','rf_joint')], 
+            aes(x = predType, y = pcc, fill = predType)) + 
+  geom_lv(color = 'black', fill = "gray20", outlier.size = 1, alpha = 0.3) + 
+  #geom_boxplot(color = 'black', width = 0.6, position = 'dodge', outlier.size = 0.1) + 
+  #scale_fill_brewer("Method", palette = 'Dark2') + 
+  geom_hline(yintercept = 0.5, lty = 'dashed') +
+  labs(x = "Method", y = "PCC between predicted and actual") +
+  #facet_wrap(~dset, ncol = 3) +
+  scale_y_continuous(limits = c(-1,1)) +
+  theme_classic()
+ggsave(plot = g, file = paste0(RES_DIR, 'pcc_boxplots_rfJointOnly_hd1_byColType_forSupplement.pdf'),
+       height = 5, width = 5)
 
 ## Figure 5 - plot the overall comparison of transfer vs OUR model
 res.fig5 <- merge(res,

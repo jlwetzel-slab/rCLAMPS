@@ -65,7 +65,7 @@ makePCCgeTable <- function(fitInfo, icThresh) {
 
 # Fit when using strict holdout validation setup
 fitInfo <- fread(infile)
-fitInfo$domPos <- (fitInfo$pos-1)%%3
+fitInfo$domPos <- (fitInfo$pos-1)%%3 + 1
 fitInfo$domPos <- factor(fitInfo$domPos)
 fitInfo$pccAgree <- ifelse(fitInfo$pcc >= 0.5, TRUE, FALSE)
 fitInfo$testType <- 'hold-one-out'
