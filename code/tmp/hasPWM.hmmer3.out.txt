@@ -1,0 +1,1 @@
+#Target	E-value	BitScore	HMM_Start	HMM_End	TargetStart	TargetEnd	HMM_Seq	Ali_Seq	Description

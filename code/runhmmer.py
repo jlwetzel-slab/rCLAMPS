@@ -26,9 +26,13 @@ def runhmmer232(outfile, hmmfile, protfile, hmmname, descs):
 def runhmmer3(outfile, hmmfile, protfile, hmmname, descs, hmmerDir = None):
     """Runs HMMER 3 and parses results, storing them into the outfile."""
     
-    if hmmerDir is not None:
+    #print hmmerDir
+    if hmmerDir is None:
+      syscall = "hmmsearch --notextw --cut_ga "+hmmfile+" "+protfile+" > "+outfile
+    elif hmmerDir is not None:
       syscall = hmmerDir+"./hmmsearch " + \
         "--notextw --cut_ga "+hmmfile+" "+protfile+" > "+outfile
+    """
     elif sys.platform == 'darwin':
       syscall = "/Users/jlwetzel/src/hmmer-3.1b2/bin/./hmmsearch " + \
         "--notextw --cut_ga "+hmmfile+" "+protfile+" > "+outfile
@@ -36,6 +40,7 @@ def runhmmer3(outfile, hmmfile, protfile, hmmname, descs, hmmerDir = None):
       syscall = HOMEDIR+"/src/hmmer-3.3.1/src/./hmmsearch " + \
         "--notextw --cut_ga "+hmmfile+" "+protfile+" > "+outfile
       print(syscall)
+    """
     #syscall = "/home/jlwetzel/src/hmmer-3.1b2/bin/./hmmsearch " + \
     #  "-Z 10 --notextw --domT 0 "+hmmfile+" "+protfile+" > "+outfile
     #syscall = "/usr/local/bin//hmmsearch " + \

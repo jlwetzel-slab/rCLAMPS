@@ -28,8 +28,8 @@ OUTPUT_DIRECTORY = '../my_results/zf-C2H2_250_50_seedFFSdiverse6/'  # Set to any
 #OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
 ORIGINAL_INPUT_FORMAT = False         # Set to True for reproducion of homeodomain manuscript model
                                      # Set to False to give inputs in format from ../precomputedInputs/ 
-RUN_GIBBS = True                     # Set to False if only want to troubleshoot prior to running Gibbs sampler
-HMMER_HOME = '/home/jlwetzel/src/hmmer-3.3.1/src/'
+RUN_GIBBS = False                     # Set to False if only want to troubleshoot prior to running Gibbs sampler
+HMMER_HOME = None #'/home/jlwetzel/src/hmmer-3.3.1/src/'
 EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing .. N/A for ZF testing
 MWID = 4               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
 #MWID = 6
@@ -42,8 +42,8 @@ if DOMAIN_TYPE == 'zf-C2H2':
 else:
     RIGHT_OLAP = 0     # No domain base overlap for single-domain proteins
 RAND_SEED = 382738375  # Numpy random seed for used for manuscript results
-MAXITER = 50           # Maximum number of iterations per Markov chain
-N_CHAINS = 250         # Number of Markov chains to use
+MAXITER = 15           # Maximum number of iterations per Markov chain
+N_CHAINS = 100         # Number of Markov chains to use
 INIT_ORACLE = False    # Deprecated ... was used to compare to previous Naive Bayes implementation
 SAMPLE = 100           # Integer to multiply PWM columns by when converting to counts
 OBS_GRPS = 'grpIDcore' # Perform group updates based on identical DNA-contacting protein residues
@@ -1778,7 +1778,7 @@ def main():
     
     # Gather the seed alignment for proteins with known interfaces
     if DOMAIN_TYPE == 'homeodomain':
-        fixedStarts = readSeedAlignment(SEED_FILE)
+        fixedStarts = readSeedAlignment(SEED_FILE, include = pwms.keys())
     elif DOMAIN_TYPE == 'zf-C2H2':
         knownStarts_ffs = readSeedAlignment(SEED_FILE, include = pwms.keys())
         # Remove examples where the known/stated fixed starting position
