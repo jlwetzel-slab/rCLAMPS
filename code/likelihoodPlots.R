@@ -23,5 +23,8 @@ g <- ggplot(scores, aes(x = rank, y = score)) +
   theme_bw()
 ggsave(g, file = paste0(IN_DIR, 'modelImprovementAboveRandom.pdf'),
        height = 4, width = 6)
-  
 
+# Top 10% of models show at most 2% lower improvement over random than the best model  
+print(scores[1:10])
+x <- 190280.1 - 186353.8
+print(x/190280.1)
