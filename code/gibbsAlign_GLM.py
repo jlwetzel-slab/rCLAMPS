@@ -22,17 +22,17 @@ from scipy import sparse
 import numpy as np
 import time, pickle, argparse, math, multiprocessing
 
-DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
-OUTPUT_DIRECTORY = '../my_results/zf-C2H2_250_50_seedFFSdiverse6/'  # Set to any output directory you want
-#DOMAIN_TYPE = 'homeodomain' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
-#OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
-ORIGINAL_INPUT_FORMAT = False         # Set to True for reproducion of homeodomain manuscript model
+#DOMAIN_TYPE = 'zf-C2H2' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
+#OUTPUT_DIRECTORY = '../my_results/zf-C2H2_250_50_seedFFSdiverse6/'  # Set to any output directory you want
+DOMAIN_TYPE = 'homeodomain' # Name the domain type (for ease of re-running zf-C2H2 or homeodomain analyses)
+OUTPUT_DIRECTORY = '../my_results/allHomeodomainProts/'  # Set to any output directory you want
+ORIGINAL_INPUT_FORMAT = True         # Set to True for reproducion of homeodomain manuscript model
                                      # Set to False to give inputs in format from ../precomputedInputs/ 
-RUN_GIBBS = False                     # Set to False if only want to troubleshoot prior to running Gibbs sampler
+RUN_GIBBS = True                    # Set to False if only want to troubleshoot prior to running Gibbs sampler
 HMMER_HOME = None #'/home/jlwetzel/src/hmmer-3.3.1/src/'
 EXCLUDE_TEST = False   # True if want to exlude 1/2 of Chu proteins for testing .. N/A for ZF testing
-MWID = 4               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
-#MWID = 6
+#MWID = 4               # Number of base positions in the contact map; set for backward compatibility (6 for homeodomain; 5 for C2H2-ZFs)
+MWID = 6
 if DOMAIN_TYPE == 'zf-C2H2':
     RIGHT_OLAP = 1     # Number of 3' bases in contact map overlapping with previous domain instance (if multi-domain) - 1 for zf-C2H2
     ANCHOR_B1H = False     # Set to true to anchor alignment based on single-finger B1H data for ZFs (Najafabadi, 2015, Nat. Biotech.)

@@ -1,0 +1,9 @@
+rCLAMPS and examplePredictions.txt are currently implemented in Python2.7 
+and require the following:
+
+1.  Python 2.7 with the scikit-learn and scipy packages. Currently the software is tested on a Linux machine running Python v.2.7.18 with scikit-learn v.0.20.4, numpy v1.16.6, and scipy v.1.2.3.
+
+2.  HMMer3, for mapping proteins sequences to domain positions in the protein-DNA structural interaction interface model.  The code has been tested up to version HMMer3.3.1, though it should work with any version provided the output formatting and HMMs have not changed.
+
+3. Weblogo3 (if you want to visualize motifs)
+see http://weblogo.threeplusone.com/manual.html#download for install instructions
