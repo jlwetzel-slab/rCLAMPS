@@ -1,6 +1,6 @@
-To reproduce the various models by rerunning rCLAMPS in its entirity
-rCLAMPS can be rerun setting the globals in gibbsAlign_GLM.py
-in the following ways:
+To reproduce the various models analyzed in the manuscript by rerunning 
+rCLAMPS in its entirity, rCLAMPS can be rerun setting the globals in 
+gibbsAlign_GLM.py in the following ways:
 
 1.  For the full homeomodomain model (i.e., in Figure 2)
 
