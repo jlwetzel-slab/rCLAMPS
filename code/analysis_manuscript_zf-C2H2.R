@@ -24,11 +24,6 @@ AMINO <- c('A','C','D','E','F','G','H','I','K','L',
            'M','N','P','Q','R','S','T','V','W','Y')
 
 inDir <- paste0('../my_results/zf-C2H2_250_50_seedFFSdiverse6/')
-#inDir <- paste0('../my_results/zf-C2H2_100_25_seedFFSrand5/')
-#inDir <- paste0('../my_results/zf-C2H2_100_15_seedB1H/')
-#inDir <- paste0('../my_results/zf-C2H2_100_25_seedFFSall_noRescale/')
-#inDir <- paste0('../my_results/zf-C2H2_100_25_seedFFSall/')
-#inDir <- paste0('../my_results/zf-C2H2_ffsOnly_iter1/')
 infile <- paste0(inDir,'pccTable_underS_holdOneOut.txt')
 aliFile <- paste0(inDir,'registrationInfo.txt')
 outdir <- paste0(inDir, 'plots/')

@@ -1,6 +1,0 @@
-prot	start	rev
-CG31670	1	0
-CG9895	0	0
-lola-PF	6	0
-lola-PY	6	0
-sqz	4	0

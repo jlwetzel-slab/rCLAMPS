@@ -1,7 +1,0 @@
-prot	start	rev
-CG31670	1	0
-Sp1	3	0
-bowl	2	0
-ken	3	0
-ovo	0	1
-pho	2	0
