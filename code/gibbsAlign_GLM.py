@@ -1480,7 +1480,6 @@ def readSeedAlignment(infile, include = set()):
     # Reads table of seed start/orientations (as created by getFixedStarts_fromStructures())
     fixedStarts = {}
     fin = open(infile)
-    fin.readline()
     for line in fin:
         l = line.strip().split()
         if l[0] in include:
