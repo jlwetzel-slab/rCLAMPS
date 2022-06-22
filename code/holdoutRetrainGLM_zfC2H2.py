@@ -169,7 +169,7 @@ def main():
         
         #print coreSeq
         pwm = predictSpecificity_array_ZF(fullX, model_ho, startInd_ho, 
-                                          nDoms[testProteins[0]], wtB1 = 0.8)
+                                          nDoms[testProteins[0]], wtB1 = 0.5)
 
         for p in testProteins:
             pred_pwms[p] = pwm

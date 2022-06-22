@@ -13,7 +13,7 @@ library(lvplot)
 ###########################
 # Figure 2
 ###########################
-# Uses output from 'holdoutRetrainGLM.py', where the GLM was retrained with
+# Uses output from 'holdoutRetrainGLM_zfC2H2.py', where the GLM was retrained with
 # each distinct set of binding amino acid residue combinations' protiens held out separately,
 # to understand the expected de novo predictive performance of rCLAMPS in 
 # a strict hold-out cross-validation setup.
