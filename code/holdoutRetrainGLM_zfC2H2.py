@@ -55,7 +55,7 @@ def makePCCtable(exp, pred, core, fname):
                        %(prot, pos+1, pcc, rmse, icPred, icExp, core[prot]))
     fout.close()
 
-def predictSpecificity_array_ZF(fullX, model, startInd, arrayLen):
+def predictSpecificity_array_ZF(fullX, model, startInd, arrayLen, wtB1 = 0.5):
     # Predicts the specificity for an array of tandem domains with potential 
     # overlap in DBD-base interfaces (e.g., for zf-C2H2 proteins)
 
@@ -73,24 +73,24 @@ def predictSpecificity_array_ZF(fullX, model, startInd, arrayLen):
     #for k in sorted(pwms.keys()):
     #    print pwms[k]
 
-    # Average the overlapping positions for adjacent domains and concatenate
+    # Weighted average for overlapping positions for adjacent domains and concatenate
     pwm = []
     for i in range(arrayLen):
         if i == 0:
             p = np.array(pwms[i])
-            p[MWID-1,:] = (p[MWID-RIGHT_OLAP,:] + np.array(pwms[i+1][0]))/float(2)
+            p[MWID-1,:] = (1-wtB1)*p[MWID-RIGHT_OLAP,:] + wtB1*np.array(pwms[i+1][0])
             pwm += p.tolist()            
         elif i == arrayLen-1:
             pwm += pwms[i][RIGHT_OLAP:]
         else:
             p = np.array(pwms[i][RIGHT_OLAP:])
-            p[MWID-RIGHT_OLAP-1,:] = (p[MWID-RIGHT_OLAP-1,:] + np.array(pwms[i+1][0]))/float(2)
+            p[MWID-RIGHT_OLAP-1,:] = (1-wtB1)*p[MWID-RIGHT_OLAP-1,:] + wtB1*np.array(pwms[i+1][0])
             pwm += p.tolist()            
 
     return np.array(pwm)
 
 def main():
-    mainOutDir = '../my_results/zf-C2H2_250_50_seedFFSdiverse6/'
+    mainOutDir = '../my_results/zf-C2H2_250_50_seedFFSdiverse6_80_20/'
 
     # Obtain Model
     filename = mainOutDir+'result.pickle'
@@ -168,7 +168,8 @@ def main():
         model_ho = createGLMModel(trainX, trainY, trainW)
         
         #print coreSeq
-        pwm = predictSpecificity_array_ZF(fullX, model_ho, startInd_ho, nDoms[testProteins[0]])
+        pwm = predictSpecificity_array_ZF(fullX, model_ho, startInd_ho, 
+                                          nDoms[testProteins[0]], wtB1 = 0.8)
 
         for p in testProteins:
             pred_pwms[p] = pwm
