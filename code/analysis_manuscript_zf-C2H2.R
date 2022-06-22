@@ -80,6 +80,8 @@ fitInfo.trim.0 <- trimRes.0[["fitInfo"]]
 fracPCCge.tab.trim.0 <- trimRes.0[["pccGEtab"]]
 fitInfo.trim.25 <- trimRes.25[["fitInfo"]]
 fracPCCge.tab.trim.25 <- trimRes.25[["pccGEtab"]]
+fitInfo.trim.4 <- trimRes.4[["fitInfo"]]
+fracPCCge.tab.trim.4 <- trimRes.4[["pccGEtab"]]
 
 # Figure 2 (left)
 g <- ggplot(fracPCCge.tab.trim.0, aes(x = pcc, y = fracPCCge, col = dset)) + 
@@ -102,6 +104,16 @@ g <- ggplot(fracPCCge.tab.trim.25, aes(x = pcc, y = fracPCCge, col = dset)) +
   theme_bw()
 ggsave(plot = g, file = paste0(outdir, 'Figure2_left_trimIC_0.25.pdf'),height = 4, width = 5)
 
+g <- ggplot(fracPCCge.tab.trim.4, aes(x = pcc, y = fracPCCge, col = dset)) + 
+  geom_line(size = 1) + 
+  #geom_point(data = fracPCCge.tab[pcc == 0.5], shape = 2) +
+  geom_vline(xintercept = 0.5, lty = 'dashed') +
+  #geom_hline(yintercept = 0.95, lty = 'dashed') +
+  scale_color_brewer("", palette = 'Dark2') + 
+  labs(x = "PCC", y = "Fraction of columns with PCC >= x") +
+  theme_bw()
+ggsave(plot = g, file = paste0(outdir, 'Figure2_left_trimIC_0.4.pdf'),height = 4, width = 5)
+
 # Figure 2 (right)
 g <- ggplot(fitInfo.trim.0, aes(x = domPos, y = pcc)) +
   geom_lv(color = 'black', fill = "gray20", outlier.size = 1, alpha = 0.3) + 
@@ -116,6 +128,13 @@ g <- ggplot(fitInfo.trim.25, aes(x = domPos, y = pcc)) +
   labs(x = "Binding site position", y = "PCC between predicted and actual") +
   theme_classic()
 ggsave(plot = g, file = paste0(outdir, 'Figure2_right_trimIC_0.25.pdf'),height = 4, width = 4)
+
+g <- ggplot(fitInfo.trim.4, aes(x = domPos, y = pcc)) +
+  geom_lv(color = 'black', fill = "gray20", outlier.size = 1, alpha = 0.3) + 
+  geom_hline(yintercept = 0.5, lty = 'dashed') +
+  labs(x = "Binding site position", y = "PCC between predicted and actual") +
+  theme_classic()
+ggsave(plot = g, file = paste0(outdir, 'Figure2_right_trimIC_0.4.pdf'),height = 4, width = 4)
 
 # Alignment info 
 aliInfo <- fread(aliFile)  # The alignment inferred by the procedure
