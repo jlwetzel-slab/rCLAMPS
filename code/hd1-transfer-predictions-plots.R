@@ -608,6 +608,21 @@ g <- ggplot(res.noOlap.rfExtant[predType != 'model+nn'], aes(x = pos, y = pcc, f
   theme(legend.position = 'top')
 ggsave(plot = g, file = paste0(RES_DIR, 'pcc_boxplots_rfExtantOnly_excludeNN.pdf'),
        height = 4, width = 4)
+
+## Supplemental figure S2, right
+s2Tab <- droplevels(res.noOlap.rfExtant[predType != 'model+nn'])
+s2Tab$predType <- plyr::mapvalues(s2Tab$predType,from = c('model', 'rf_extant'),to = c('rCLAMPS','rf_extant'))
+g <- ggplot(s2Tab, aes(x = pos, y = pcc, grp = predType)) + 
+  geom_lv(color = 'black', outlier.size = 1, aes(fill = predType), alpha = .7) + 
+  scale_fill_brewer("", palette = 'Dark2') + 
+  geom_hline(yintercept = 0.5, lty = 'dashed') +
+  labs(x = "Binding site position", y = "PCC between predicted and actual") +
+  scale_y_continuous(limits = c(-1,1)) +
+  theme_classic() + 
+  theme(legend.position = 'top')
+ggsave(plot = g, file = paste0(RES_DIR, 'pcc_boxplots_rfExtantOnly_excludeNN_boxen.pdf'),
+       height = 4, width = 4)
+
 g <- ggplot(res.noOlap.rfExtant.hd1, aes(x = pos, y = pcc, fill = predType)) + 
   geom_boxplot(color = 'black', width = 0.6, position = 'dodge', outlier.size = 0.1) + 
   scale_fill_brewer("Method", palette = 'Dark2') + 
@@ -668,6 +683,35 @@ g <- ggplot(res.noOlap.rfJointSumm[predType != 'model+nn'], aes(x = pos, y = fra
   theme(legend.position = 'top')
 ggsave(plot = g, file = paste0(RES_DIR, 'pcc_fracAgree_compareModelVsNN_rfJointOnly_excludeNN.pdf'),
        height = 4, width = 4)
+
+## S3 left
+s3left <- droplevels(res.noOlap.rfJointSumm[predType != 'model+nn'])
+s3left$predType <- plyr::mapvalues(s3left$predType,from = c('model', 'rf_joint'),to = c('rCLAMPS','rf_joint'))
+g <- ggplot(s3left, aes(x = pos, y = fracAgree, fill = predType)) + 
+  geom_bar(color = 'black', width = 0.6, stat = 'identity', position = 'dodge') + 
+  scale_y_continuous(limits = c(0,1)) +
+  #geom_text(aes(label=numCols), position=position_dodge(width=0.6), vjust=-0.25,size=2)+
+  scale_fill_brewer("", palette = 'Dark2') + 
+  labs(x = "Binding site position", y = "Columns in agreement (predicted vs. actual)") +
+  theme_classic() + 
+  theme(legend.position = 'top')
+ggsave(plot = g, file = paste0(RES_DIR, 'pcc_fracAgree_compareModelVsNN_rfJointOnly_excludeNN_rCLAMPS.pdf'),
+       height = 4, width = 4)
+
+## S2 left
+s2left <- droplevels(res.noOlap.rfExtantSumm[predType != 'model+nn'])
+s2left$predType <- plyr::mapvalues(s2left$predType,from = c('model', 'rf_extant'),to = c('rCLAMPS','rf_extant'))
+g <- ggplot(s2left, aes(x = pos, y = fracAgree, fill = predType)) + 
+  geom_bar(color = 'black', width = 0.6, stat = 'identity', position = 'dodge') + 
+  scale_y_continuous(limits = c(0,1)) +
+  #geom_text(aes(label=numCols), position=position_dodge(width=0.6), vjust=-0.25,size=2)+
+  scale_fill_brewer("", palette = 'Dark2') + 
+  labs(x = "Binding site position", y = "Columns in agreement (predicted vs. actual)") +
+  theme_classic() + 
+  theme(legend.position = 'top')
+ggsave(plot = g, file = paste0(RES_DIR, 'pcc_fracAgree_compareModelVsNN_rfExtantOnly_excludeNN_rCLAMPS.pdf'),
+       height = 4, width = 4)
+
 g <- ggplot(res.noOlap.rfJoint.hd1Summ, aes(x = pos, y = fracAgree, fill = predType)) + 
   geom_bar(color = 'black', width = 0.6, stat = 'identity', position = 'dodge') + 
   scale_y_continuous(limits = c(0,1)) +
@@ -696,6 +740,21 @@ g <- ggplot(res.noOlap.rfJoint[predType != 'model+nn'], aes(x = pos, y = pcc, fi
   theme(legend.position = 'top')
 ggsave(plot = g, file = paste0(RES_DIR, 'pcc_boxplots_rfJointOnly_excludeNN.pdf'),
        height = 4, width = 4)
+
+## Supplemental figure S3, right
+s3Tab <- droplevels(res.noOlap.rfJoint[predType != 'model+nn'])
+s3Tab$predType <- plyr::mapvalues(s3Tab$predType,from = c('model', 'rf_joint'),to = c('rCLAMPS','rf_joint'))
+g <- ggplot(s3Tab, aes(x = pos, y = pcc, grp = predType)) + 
+  geom_lv(color = 'black', outlier.size = 1, aes(fill = predType), alpha = .7) + 
+  scale_fill_brewer("", palette = 'Dark2') + 
+  geom_hline(yintercept = 0.5, lty = 'dashed') +
+  labs(x = "Binding site position", y = "PCC between predicted and actual") +
+  scale_y_continuous(limits = c(-1,1)) +
+  theme_classic() + 
+  theme(legend.position = 'top')
+ggsave(plot = g, file = paste0(RES_DIR, 'pcc_boxplots_rfJointOnly_excludeNN_boxen.pdf'),
+       height = 4, width = 4)
+
 g <- ggplot(res.noOlap.rfJoint.hd1, aes(x = pos, y = pcc, fill = predType)) + 
   geom_boxplot(color = 'black', width = 0.6, position = 'dodge', outlier.size = 0.1) + 
   scale_fill_brewer("Method", palette = 'Dark2') + 
