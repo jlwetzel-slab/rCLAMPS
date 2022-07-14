@@ -7,11 +7,10 @@ klu         RDHT
 klu         RDMR
 B0310.2     NFLK
 B0310.2     RDNR
-CTCF2-7     RVTN
-CTCF2-7     TGER
-CTCF2-7     ESKR
-CTCF2-7     DYKR
-CTCF2-7     RSDV
+CTCF3-7     TGER
+CTCF3-7     ESKR
+CTCF3-7     DYKR
+CTCF3-7     GQTM
 EGR1        RDER
 EGR1        RDHT
 EGR1        RDER
