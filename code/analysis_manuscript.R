@@ -85,7 +85,9 @@ g <- ggplot(fracPCCge.tab[colType == 'hold-one-out'], aes(x = pcc, y = fracPCCge
   #geom_hline(yintercept = 0.95, lty = 'dashed') +
   #scale_color_brewer("", palette = 'Dark2') + 
   labs(x = "PCC", y = "Fraction of columns with PCC >= x") +
-  theme_bw()
+  theme_bw() + 
+  theme(axis.title = element_text(size = 15),
+        axis.text = element_text(size = 12))
 ggsave(plot = g, file = paste0(outdir, 'Figure2_left.pdf'),height = 4, width = 4)
 
 # Figure 2 (right)
@@ -94,7 +96,9 @@ g <- ggplot(fitInfo.both[testType == 'hold-one-out'], aes(x = pos, y = pcc)) +
   geom_lv(color = 'black', fill = "gray20", outlier.size = 1, alpha = 0.3) + 
   geom_hline(yintercept = 0.5, lty = 'dashed') +
   labs(x = "Binding site position", y = "PCC between predicted and actual") +
-  theme_classic()
+  theme_classic() +
+  theme(axis.title = element_text(size = 15),
+        axis.text = element_text(size = 12))
 ggsave(plot = g, file = paste0(outdir, 'Figure2_right.pdf'),height = 4, width = 4)
 
 ###############################
@@ -246,7 +250,9 @@ g <- ggplot(res.fig3[predType == 'hybrid'], aes(x = transfer, y = pcc)) +
   scale_y_continuous(limits = c(-1,1)) +
   geom_hline(yintercept = 0.5, lty = 'dashed') +
   labs(x = "Column type", y = "PCC between predicted and actual") +
-  theme_classic()
+  theme_classic() +
+  theme(axis.title = element_text(size = 15),
+        axis.text = element_text(size = 12))
 ggsave(plot = g, file = paste0(outdir, 'Figure3_left.pdf'),
        height = 4, width = 3)
 
@@ -258,7 +264,9 @@ g <- ggplot(res.fig3[!(prot %in% trSet.rfExtant) &
   scale_y_continuous(limits = c(-1,1)) +
   geom_hline(yintercept = 0.5, lty = 'dashed') +
   labs(x = "Method", y = "PCC between predicted and actual") +
-  theme_classic()
+  theme_classic() +
+  theme(axis.title = element_text(size = 15),
+        axis.text = element_text(size = 11))
 ggsave(plot = g, file = paste0(outdir, 'Figure3_right.pdf'),
        height = 4, width = 3)
 
@@ -321,8 +329,10 @@ g <- ggplot(droplevels(mappingStats[valGrps != 'possible']),
   scale_fill_manual("Method", values = niceCols) + 
   labs(x = 'Specificity group', y = '# Correct mappings') + 
   theme_classic() + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = 'none', legend.title = element_blank())
+  theme(axis.title = element_text(size = 15),
+        axis.text.y = element_text(size = 12),
+        axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+        legend.title = element_blank(),legend.position = 'none')
 ggsave(plot = g, file = paste0(outdir, 'Figure4_right.pdf'),
        height = 3, width = 3.5)
 
@@ -340,7 +350,10 @@ g <- ggplot(mappingStats.summ, aes(x = dset, y = fracCorrect)) +
   scale_y_continuous(limits = c(0,1)) +
   labs(x = 'Method', y = 'Fraction of correct mappings') + 
   theme_classic() + 
-  theme(axis.text.x = element_blank(),legend.position = 'none')
+  theme(axis.title = element_text(size = 15),
+        axis.text.y = element_text(size = 12),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),legend.position = 'none')
 ggsave(plot = g, file = paste0(outdir, 'Figure4_left.pdf'),
        height = 3, width = 2)
 
