@@ -9,17 +9,32 @@ from runhmmer import runhmmer3, getdescs
 import numpy as np
 import pickle, os
 
-PROT_SEQ_FILE = '../precomputedInputs/proteins_homeodomains_hasPWM.fa'  # Input protein sequence fasta file
-PWM_INPUT_TABLE = '../precomputedInputs/pwmTab_homeodomains_all.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
-CONTACT_MAP = '../precomputedInputs/homeodomain_contactMap.txt'  # A contact map for the domain family
-HMM_FILE = '../pfamHMMs/Homeobox.hmm'    # Location of hmm file
-HMM_LEN = 57                             # Number of match states in HMM file
-HMM_NAME = 'Homeobox'                    # A name for the HMM
-HMM_OFFSET = 2                           # Used to offset HMM states to canonical numbering scheme for Homoedomains
-HMMER_HOME = None
-EXCLUDE_TEST = False
+DOMAIN_TYPE = 'zf-C2H2'  # Set to either 'zf-C2H2' or 'homeodomain'
 OBS_GRPS = 'grpIDcore'
-MWID = 6
+
+if DOMAIN_TYPE == 'zf-C2H2':
+    PROT_SEQ_FILE = '../precomputedInputs/zf-C2H2/prot_seq_fewZFs_hmmerOut_clusteredOnly_removeTooShort.txt'  # Input protein domain file subsetted to relvant amino acid contacting positions
+    PROT_SEQ_FILE_FFS = '../flyFactorSurvey/enuameh/enuameh_perFinger_processedProtInfo.txt'
+    PWM_INPUT_TABLE = '../precomputedInputs/zf-C2H2/pwmTab_fewZFs_clusteredOnly_removeTooShort.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
+    PWM_INPUT_FILE_FFS = '../flyFactorSurvey/enuameh/flyfactor_dataset_A.txt'
+    CONTACT_MAP = '../precomputedInputs/zf-C2H2/zf-C2H2_contactMap.txt'  # A contact map for the domain family
+    SEED_FILE = '../flyFactorSurvey/enuameh/enuameh_startPosInfo.txt'    # Initial seeds based on Enuameh et al. 2013
+    MWID = 4
+    RIGHT_OLAP = 1     # Number of 3' bases in contact map overlapping with previous domain instance (if multi-domain) - 1 for zf-C2H2
+    DOMAIN_ORDER = -1  # Since zf-C2H2s bind 3' to 5', consider them in reverse order
+elif DOMAIN_TYPE == 'homeodomain':
+    PROT_SEQ_FILE = '../precomputedInputs/proteins_homeodomains_hasPWM.fa'  # Input protein sequence fasta file
+    PWM_INPUT_TABLE = '../precomputedInputs/pwmTab_homeodomains_all.txt'   # A table of PWMs corresponding to prots in PROT_SEQ_FILE
+    CONTACT_MAP = '../precomputedInputs/homeodomain_contactMap.txt'  # A contact map for the domain family
+    MWID = 6
+    HMM_FILE = '../pfamHMMs/Homeobox.hmm'    # Location of hmm file
+    HMM_LEN = 57                             # Number of match states in HMM file
+    HMM_NAME = 'Homeobox'                    # A name for the HMM
+    HMM_OFFSET = 2                           # Used to offset HMM states to canonical numbering scheme for Homoedomains
+    HMMER_HOME = None
+    EXCLUDE_TEST = False
+    RIGHT_OLAP = 0     # No domain base overlap for single-domain proteins
+    DOMAIN_ORDER = 1   # Standard domain ordering since only 1 domain per protein
 
 # Used by various functions - do not change these
 BASE = ['A','C','G','T']
@@ -90,7 +105,7 @@ def assignObsGrps(core, by = 'grpIDcore'):
 
     return grps
 
-def getFullX_fromFasta(fastaFile, aaPosList, edges):
+def getFullX_fromFasta_HMMer3(fastaFile, aaPosList, edges):
     # Reads a fasta file of protein sequences and converts 
     # to the appropriate match state position representation,
     # and returns a corresponding X matrix
@@ -122,6 +137,35 @@ def getFullX_fromFasta(fastaFile, aaPosList, edges):
 
     fullX, grpInd = formGLM_fullX(core, edges, uniqueProteins, obsGrps)
     return fullX, uniqueProteins, obsGrps, grpInd
+
+def getFullX_fromFile_zfC2H2(infile, aaPosList, edges):
+    # Read input zfC2H2s from special format file
+
+    fin = open(infile, 'r')
+    core = {}  # TO BE COMPLETED
+    for line in fin:
+        l = line.strip().split()
+        prot, cs = l[0], l[1]
+        if core.has_key(prot):
+            core[prot] += cs
+        else:
+            core[prot] = cs
+
+    # Assign to distinct observation groups
+    obsGrps = assignObsGrps(core, by = OBS_GRPS)
+    uprots = []
+    for grp in obsGrps.keys():
+        uprots += obsGrps[grp]
+    uniqueProteins = uprots  
+
+    nDoms = {}
+    for p in uniqueProteins:
+        nDoms[p] = len(core[p])/len(aaPosList)
+        #print p, core[p], nDoms[p]
+    fullX, grpInd = formGLM_fullX(core, edges, uniqueProteins, 
+                                  obsGrps, domainOrder = DOMAIN_ORDER)
+    
+    return fullX, uniqueProteins, obsGrps, grpInd, nDoms
 
 def formGLM_fullX(core, edges, uniqueProteins, obsGrps, numAAs = 19, domainOrder = 1,
                   modelType = 'classifier'):
@@ -333,3 +377,215 @@ def getPrecomputedInputs():
                     next
 
     return pwms, core, full, edges, edges_hmmPos, aaPosList, testProts
+
+def getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False, includeB1H = False):
+    # Get the necesarry precomputed information for the C2H2-ZF inputs
+    # Assumes an input table mapping protein IDs to ordered arrays of domains
+    # subsetted to the appropriate base-contacting positions according to HMMER v2.3.2.
+    # ffsOnly using only the flyfactorsurvey data for debugging purposes
+
+    def getPWM(fpath, tfs, motifs, verbose = False, ID_field = "TF Name"):
+        # Extracts motifs from the CIS-BP PWM.txt file subset to 
+        # only those whose TF_Name is in tfs (set) and whose 
+        # Motif_ID is in motifs (set)
+        fin = open(fpath)
+        pwms = {}
+        line = fin.readline()
+
+        while line != "":
+            lineArr = line.split("\t")
+            if verbose:
+                print lineArr
+            if lineArr[0] == ID_field:
+                tf = lineArr[1].rstrip()
+            if lineArr[0] == "Pos":
+                pwm = []
+            if lineArr[0] == "Motif":
+                motif = lineArr[1].rstrip()
+            if len(lineArr) == 5 and lineArr[0] != "Pos":
+                lineArr = np.array(lineArr)
+                onevec_list = lineArr.astype(np.float)[1:5].tolist()
+                pwm.append(onevec_list)
+            if lineArr[0] == '\n' and tf in tfs and motif in motifs:
+                pwms[tf] = np.array(pwm)
+                line = fin.readline()
+            line = fin.readline()
+        return pwms
+
+    def getProteinInfo_zfC2H2_FFS(infile):
+        core = {}
+        fin = open(infile, 'r')
+        fin.readline()
+        for line in fin:
+            l = line.strip().split()
+            pname, coreSeq = l[0], l[3]
+            if core.has_key(pname):
+                core[pname] += coreSeq
+            else:
+                core[pname] = coreSeq
+        fin.close()    
+        return core
+
+    def getFlyFactorPWMs_zfC2H2(ffsPWMfile, prots = set(), smooth = 0):
+        # Read the fly factor survey pwms into numpy arrays
+
+        fin = open(ffsPWMfile, 'r')
+        line = fin.readline()
+        pwms = {}
+        while line != '':
+            if line[0] == '>':
+                l = line.strip().split('\t')
+                motif = l[0][1:]
+                line = fin.readline()
+                if motif.split('_')[0] in prots:
+                    prot = motif.split('_')[0]
+                else:
+                    while line != '' and line[0] != '>':
+                        line = fin.readline()
+                    continue
+                if prot+'_SOLEXA' in motif:
+                    pwm = []
+                    while line != '' and line[0] != '>':
+                        pwm.append([float(x)+smooth for x in line.strip().split('\t')])
+                        line = fin.readline()
+                    pwms[prot] = np.array(pwm)
+                else:
+                    while line != '' and line[0] != '>':
+                        line = fin.readline()
+                    continue
+        fin.close()
+
+        # Normalize the motifs
+        for p in pwms.keys():
+            for i in range(len(pwms[p])):
+                pwms[p][i] = pwms[p][i]/pwms[p][i].sum()    
+        return pwms
+
+    def readSeedAlignment(infile, include = set()):
+        # Reads table of seed start/orientations (as created by getFixedStarts_fromStructures())
+        fixedStarts = {}
+        fin = open(infile)
+        fin.readline()
+        for line in fin:
+            l = line.strip().split()
+            if l[0] in include:
+                fixedStarts[l[0]] = {'start': int(l[1]), 'rev': int(l[2])}
+        fin.close()
+        return fixedStarts
+
+    # Get the PWM info
+    # Get the motif IDs of interest
+    fin = open('../cis_bp/C2H2-ZF/motifTable_mostRecent_fewZFs_clusteredOnly_removeTooShort.txt', 'r')
+    pwms = {}
+    if not ffsOnly:
+        fin.readline()
+        motifMap = {}
+        motifs = set()
+        for line in fin:
+            l = line.strip().split('\t')
+            prot, motif = l[0],l[3]
+            motifMap[prot] = motif
+            motifs.add(motif)
+        fin.close()
+        #print motifMap
+        pwms = getPWM('../cis_bp/C2H2-ZF/PWM.txt', set(motifMap.keys()), motifs, ID_field = 'TF')
+    
+    # Read in the fly-factor survey info
+    core_ffs = getProteinInfo_zfC2H2_FFS(PROT_SEQ_FILE_FFS)
+    pwms_ffs = getFlyFactorPWMs_zfC2H2(PWM_INPUT_FILE_FFS, prots=set(core_ffs.keys()), smooth = 1)
+    #print(len(core_ffs), len(pwms_ffs))
+    subsetDict(core_ffs, set(pwms_ffs.keys()))
+    subsetDict(pwms_ffs, set(pwms_ffs.keys()))
+    #print(len(core_ffs), len(pwms_ffs))
+
+    # Get protein info
+    core = {}
+    if not ffsOnly:
+        fin = open(PROT_SEQ_FILE, 'r')
+        fin.readline()
+        for line in fin:
+            l = line.strip().split()
+            pname, coreSeq = l[0], l[7]
+            if core.has_key(pname):
+                core[pname] += coreSeq
+            else:
+                core[pname] = coreSeq
+        fin.close()    
+        subsetDict(core, set(pwms.keys()))
+
+    # Combine to a single set of prots/PWMs
+    for k in core_ffs.keys():
+        core[k] = core_ffs[k]
+        pwms[k] = pwms_ffs[k]
+
+    # Read in the fly-factor survey info
+    if includeB1H:
+        core_b1h, pwms_b1h = getB1Hmotifs('../cis_bp/C2H2-ZF/B1H.motifs.long.pfm.scaled.noReps.txt')
+        #print core_b1h
+        # Combine to a single set of prots/PWMs
+        for k in core_b1h.keys():
+            core[k] = core_b1h[k]
+            pwms[k] = pwms_b1h[k]
+   
+    # Get the contact map info
+    edges_hmmPos = {}
+    fin = open(CONTACT_MAP, 'r')
+    fin.readline()
+    aaPosList = set()
+    for line in fin:
+        bpos, aapos = tuple([int(x) for x in line.strip().split()])
+        if bpos in edges_hmmPos:
+            edges_hmmPos[bpos].append(aapos)
+        else:
+            edges_hmmPos[bpos] = [aapos]
+        aaPosList.add(aapos)
+    fin.close()
+    aaPosList = sorted(list(aaPosList))
+    edges = {}
+    for bpos in edges_hmmPos:
+        for aapos in edges_hmmPos[bpos]:
+            if bpos in edges.keys():
+                edges[bpos].append(aaPosList.index(aapos))
+            else:
+                edges[bpos] = [aaPosList.index(aapos)]
+
+    # Rescale the PWMs?
+    if rescalePWMs:
+        for k in pwms.keys():
+            pwms[k] = rescalePWM(pwms[k], maxBaseSelect = 50)
+
+    return pwms, core, edges, edges_hmmPos, aaPosList
+
+def predictSpecificity_array_ZF(fullX, model, startInd, arrayLen, wtB1 = 0.5):
+    # Predicts the specificity for an array of tandem domains with potential 
+    # overlap in DBD-base interfaces (e.g., for zf-C2H2 proteins)
+
+    # Predict an MWID length specificity for each domain individually
+    testX = formGLM_testX(fullX, startInd, (startInd+4*arrayLen)-1)
+    #print testX[0].shape
+    pwms = {}
+    for i in range(arrayLen):
+        pwm = []
+        for j in range(MWID):
+            prediction = model[j].predict_proba(testX[j][i*4:(i+1)*4,])[0].tolist()
+            pwm.append(prediction)
+        pwms[i] = pwm
+    
+    #for k in sorted(pwms.keys()):
+    #    print pwms[k]
+
+    # Weighted average for overlapping positions for adjacent domains and concatenate
+    pwm = []
+    for i in range(arrayLen):
+        if i == 0:
+            p = np.array(pwms[i])
+            p[MWID-1,:] = (1-wtB1)*p[MWID-RIGHT_OLAP,:] + wtB1*np.array(pwms[i+1][0])
+            pwm += p.tolist()            
+        elif i == arrayLen-1:
+            pwm += pwms[i][RIGHT_OLAP:]
+        else:
+            p = np.array(pwms[i][RIGHT_OLAP:])
+            p[MWID-RIGHT_OLAP-1,:] = (1-wtB1)*p[MWID-RIGHT_OLAP-1,:] + wtB1*np.array(pwms[i+1][0])
+            pwm += p.tolist()            
+
+    return np.array(pwm)
