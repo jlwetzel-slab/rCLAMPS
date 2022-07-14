@@ -11,7 +11,7 @@ elif DOMAIN_TYPE == 'zf-C2H2':
 
 # Directory containing a fasta of homeomdomain proteins to predict specificities for
 PROTEIN_FILE = '../examplePredictions/'+DOMAIN_TYPE+'/predictionExamples.fa'  
-OUTPUT_DIR = '../examplePredictions/'+DOMAIN_TYPE+'/'
+OUTPUT_DIR = '../examplePredictions/'+DOMAIN_TYPE+'/rescaleIC/'
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
@@ -91,8 +91,10 @@ def main():
                 prediction = model[j].predict_proba(testX[j])[0].tolist()
                 pwm.append(prediction)
         elif DOMAIN_TYPE == 'zf-C2H2':
+            #print testProteins, coreSeq
             pwm = predictSpecificity_array_ZF(fullX, model, startInd_ho,
-                                              nDoms[testProteins[0]], wtB1 = 0.5)
+                                              nDoms[testProteins[0]], wtB1 = 0.5,
+                                              rescaleIC = True)
         for p in testProteins:
             pred_pwms[p] = np.array(pwm)
 

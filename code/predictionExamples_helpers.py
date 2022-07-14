@@ -3,7 +3,7 @@
 from sklearn.linear_model import LogisticRegression
 from gibbsAlign_GLM import makePWMtab
 from getHomeoboxConstructs import readFromFasta, writeToFasta, subsetDict, makeMatchStateTab
-from pwm import makeNucMatFile, makeLogo
+from pwm import makeNucMatFile, makeLogo, rescalePWM
 from matAlignLib import matrix_compl
 from runhmmer import runhmmer3, getdescs
 import numpy as np
@@ -556,7 +556,8 @@ def getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False, includeB1H
 
     return pwms, core, edges, edges_hmmPos, aaPosList
 
-def predictSpecificity_array_ZF(fullX, model, startInd, arrayLen, wtB1 = 0.5):
+def predictSpecificity_array_ZF(fullX, model, startInd, arrayLen, wtB1 = 0.5,
+                                rescaleIC = False):
     # Predicts the specificity for an array of tandem domains with potential 
     # overlap in DBD-base interfaces (e.g., for zf-C2H2 proteins)
 
@@ -588,4 +589,7 @@ def predictSpecificity_array_ZF(fullX, model, startInd, arrayLen, wtB1 = 0.5):
             p[MWID-RIGHT_OLAP-1,:] = (1-wtB1)*p[MWID-RIGHT_OLAP-1,:] + wtB1*np.array(pwms[i+1][0])
             pwm += p.tolist()            
 
-    return np.array(pwm)
+    if rescaleIC:
+        return rescalePWM(np.array(pwm), maxBaseSelect = 50)
+    else:
+        return np.array(pwm)
