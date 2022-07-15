@@ -557,7 +557,7 @@ def getPrecomputedInputs_zfC2H2(rescalePWMs = False, ffsOnly = False, includeB1H
     return pwms, core, edges, edges_hmmPos, aaPosList
 
 def predictSpecificity_array_ZF(fullX, model, startInd, arrayLen, wtB1 = 0.5,
-                                rescaleIC = False):
+                                rescaleIC = True):
     # Predicts the specificity for an array of tandem domains with potential 
     # overlap in DBD-base interfaces (e.g., for zf-C2H2 proteins)
 
