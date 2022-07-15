@@ -576,6 +576,7 @@ def predictSpecificity_array_ZF(fullX, model, startInd, arrayLen, wtB1 = 0.5,
     #    print pwms[k]
 
     # Weighted average for overlapping positions for adjacent domains and concatenate
+    #print pwms
     pwm = []
     for i in range(arrayLen):
         if i == 0:
