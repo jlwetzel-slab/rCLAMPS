@@ -17,6 +17,7 @@ def makeCoefTable(model, edges_hmmPos, outfile):
     for j in range(MWID):
         coefs = model[j].coef_
         intercept = model[j].intercept_
+        #print intercept
         aa_pos = edges_hmmPos[j]
         bpos = j+1
         for bInd in range(len(coefs)):
@@ -30,7 +31,7 @@ def makeCoefTable(model, edges_hmmPos, outfile):
                     fout.write('%d\t%d\t%s\t%s\t%f\n' \
                                %(bpos, apos, base, aa, val))
             fout.write('%d\t%s\t%s\t%s\t%f\n' \
-                       %(bpos, 'NA', 'NA', 'NA', intercept[bInd]))
+                       %(bpos, 'NA', base, 'NA', intercept[bInd]))
 
     fout.close()
 
