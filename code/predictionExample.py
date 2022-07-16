@@ -1,5 +1,5 @@
 # A sample file for how to make a prediction for a novel
-# homoedomain protein using the rCLAMPS model
+# protein using the rCLAMPS homeodomain or C2H2-ZF model
 
 from predictionExamples_helpers import *
 
@@ -26,6 +26,8 @@ def createFinalModel(domainType):
         pwms, core, full, edges, edges_hmmPos, aaPosList, testProts = getPrecomputedInputs()
     elif domainType == 'zf-C2H2':
         pwms, core, edges, edges_hmmPos, aaPosList = getPrecomputedInputs_zfC2H2()
+
+    #print edges_hmmPos
 
     # Retrieve the optimal offsets/orientations found previously by rCLAMPS
     filename = MODEL_DIR+'result.pickle'
