@@ -26,11 +26,11 @@ def makeCoefTable(model, edges_hmmPos, outfile):
                 apos = edges_hmmPos[j][m]
                 for aaInd in range(19):
                     aa = IND2A[aaInd]
-                    val = coefs[bInd][m*19+aaInd] + intercept[bInd]
+                    val = coefs[bInd][m*19+aaInd]# + intercept[bInd]
                     fout.write('%d\t%d\t%s\t%s\t%f\n' \
                                %(bpos, apos, base, aa, val))
-            #fout.write('%d\t%s\t%s\t%s\t%f\n' \
-            #           %(bpos, 'NA', 'NA', 'NA', intercept[bInd]))
+            fout.write('%d\t%s\t%s\t%s\t%f\n' \
+                       %(bpos, 'NA', 'NA', 'NA', intercept[bInd]))
 
     fout.close()
 

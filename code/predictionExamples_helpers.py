@@ -9,7 +9,7 @@ from runhmmer import runhmmer3, getdescs
 import numpy as np
 import pickle, os
 
-DOMAIN_TYPE = 'zf-C2H2'  # Set to either 'zf-C2H2' or 'homeodomain'
+DOMAIN_TYPE = 'homeodomain'  # Set to either 'zf-C2H2' or 'homeodomain'
 OBS_GRPS = 'grpIDcore'
 
 if DOMAIN_TYPE == 'zf-C2H2':
