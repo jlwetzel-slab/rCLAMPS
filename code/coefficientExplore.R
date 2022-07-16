@@ -8,9 +8,10 @@ rm(list = ls())
 DOMAIN_TYPE = 'zf-C2H2'
 
 x <- fread(paste0('../examplePredictions/',DOMAIN_TYPE,'/coefTable.txt'))
+#x <- x[complete.cases(x)]
 
 # Create a 4 X 19 grid of coefficients and plot relative to 0
-ref.base = 'T'; bp <- 2; ap <- 3
+ref.base = 'T'; bp <- 1; ap <- 6
 contacts <- x[bpos == bp & aapos == ap]
 #contacts$coef <- sapply(1:nrow(contacts), function(i) {
 #  ref.delta <- contacts[base == ref.base & aa == contacts$aa[i]]$coef
