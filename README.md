@@ -31,10 +31,10 @@ Here, we see that histidine (H) in alpha-helix position a3 more than doubles the
 *Note: Coefficients for tyrosine (Y) are absent because it was arbitrarily chosen as a reference amino acid for each protein-to-base contact position pair. Thats is, the effects of tyrosine on preference for each base in each position are absorbed into intercept terms and all changes in log-odds are measured relative to tyrosine.*
 
 ### Requirements
-For a list of requirements to run rCLAMPS and/or **examplePredictions.py**, please see **requirements.txt**. If you wish to reproduce models examined in the manuscript, please see **modelReproductions.txt**.  
+For a list of requirements to run rCLAMPS and/or **examplePredictions.py**, please see **requirements.txt**.
 
 ### Reproducing manuscript results
-Additionally short script reproducing the main analysis plots reported in our main manuscript are located in **./code/analysis_manuscript.R**. and **analysis_manuscript_zf-C2H2.R**.  The in-code documentation there describes which additional code files were run to produce inputs the tables analysed in these scripts.
+If you wish to reproduce models examined in the manuscript, please see **modelReproductions.txt**.  Additionally short scripts reproducing the main analysis plots reported in our main manuscript are located in **./code/analysis_manuscript.R**. and **analysis_manuscript_zf-C2H2.R**.  The in-code documentation there describes which additional code files were run to produce inputs the tables analysed in these scripts.
 
 ### Training your own recognition codes with rCLAMPS
 If you wish to run the rCLAMPS framework itself to infer new recogntion codes or train with different datasets, the main file of interest is **./code/gibbsAlign_GLM.py** - it provides the following I/O functionalities:
