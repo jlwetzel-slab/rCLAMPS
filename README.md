@@ -10,7 +10,7 @@ We provide a template for how to do so in the the file **./code/predictionExampl
 
 #### For homeodomains:
 1. Set **DOMAIN_TYPE = 'homeodomain'** in the file **predictionExamples_helpers.py**
-2. Set **PROTEIN_FILE** to point to a fasta file wherein each entry is a protein sequence has a unique identifier and contains a single homeodomain (see, e.g.,  **./examplePredictions/homeodomain/predictionExamples.fa**)
+2. Set **PROTEIN_FILE** to point to a fasta file wherein each protein sequence has a unique identifier and contains a single homeodomain (see, e.g.,  **./examplePredictions/homeodomain/predictionExamples.fa**)
 3. Set **OUTPUT_DIR** to point to a desired output directory path
 
 #### For C2H2-ZFs:
