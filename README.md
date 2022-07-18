@@ -10,8 +10,8 @@ We provide a template for how to do so in the the file **./code/predictionExampl
 
 #### For homeodomains:
 1. Set **DOMAIN_TYPE = 'homeodomain'** in the file **predictionExamples_helpers.py**
-2. Set PROTEIN_FILE to point to a fasta file wherein each entry is a protein sequence has a unique identifier and contains a single homeodomain (see, e.g.,  ./examplePredictions/homeodomain/predictionExamples.fa)
-3. Set OUTPUT_DIR to point to a desired output directory path
+2. Set **PROTEIN_FILE** to point to a fasta file wherein each entry is a protein sequence has a unique identifier and contains a single homeodomain (see, e.g.,  **./examplePredictions/homeodomain/predictionExamples.fa**)
+3. Set **OUTPUT_DIR** to point to a desired output directory path
 
 #### For C2H2-ZFs:
 *Since C2H2-ZF TFs bind DNA via arrays of closely linked C2H2-ZF domains (see manuscript for details on the C2H2-ZF-DNA interface), we use a more precise input format than for the homeodomains.  We recommend precomputing this input format using HMMer v.2.3.2, as we find that it more accurately detects these short C2H2-ZFs domains than more recent HMMer versions.*
