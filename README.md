@@ -26,7 +26,7 @@ Coefficients learned by rCLAMPS' recognition codes for the two TF families explo
 
 ![My Image](example_coef-zfC2H2-b2.a3.png)
 
-*Note that the coefficients for tyrosine (Y) are excluded, as it was arbitrarily chosen as the reference amino acid (i.e., log-odds change set to 0), for each base-contacting position. Thats is, the effect of tyrosine is absorbed into the intercept terms of the models for each base in each base position.*
+*Note that the coefficients for tyrosine (Y) are excluded, as it was arbitrarily chosen as the reference amino acid (i.e., log-odds change set to 0), for each base-contacting position. Thats is, the effect of tyrosine on preference for each base in each position are absorbed into intercept terms.*
 
 ### Requirements
 For a list of requirements to run rCLAMPS and/or **examplePredictions.py**, please see **requirements.txt**. If you wish to reproduce models examined in the manuscript, please see **modelReproductions.txt**.  
