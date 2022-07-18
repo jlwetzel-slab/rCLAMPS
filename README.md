@@ -34,7 +34,7 @@ Here, we see that histidine (H) in alpha-helix position a3 more than doubles the
 For a list of requirements to run rCLAMPS and/or **examplePredictions.py**, please see **requirements.txt**.
 
 ### Reproducing manuscript results
-If you wish to reproduce models examined in the manuscript, please see **modelReproductions.txt**.  Additionally short scripts reproducing the main analysis plots reported in our manuscript are located in **./code/analysis_manuscript.R**. and **analysis_manuscript_zf-C2H2.R**.  The in-code documentation there describes which additional code files were run to produce inputs the tables analysed in these scripts.
+If you wish to reproduce models examined in the manuscript, please see **modelReproductions.txt**.  Additionally short scripts reproducing the main analysis plots reported in our manuscript are located in **./code/analysis_manuscript.R**. and **analysis_manuscript_zf-C2H2.R**.  The in-code documentation there describes which additional code files were run to produce input tables analysed in these scripts.
 
 ### Training your own recognition codes with rCLAMPS
 If you wish to run the rCLAMPS framework itself to infer new recogntion codes or train with different datasets, the main file of interest is **./code/gibbsAlign_GLM.py** - it provides the following I/O functionalities:
