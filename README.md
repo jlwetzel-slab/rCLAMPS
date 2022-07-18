@@ -1,35 +1,61 @@
-# rCLAMPS
+### Overview
 
-rCLAMPS is software implementing the method described in the manuscript:  "Learning probabilistic protein-DNA recognition codes from DNA-binding specificities using structural mappings" by Joshua Wetzel, Kaiqian Zhang, and Mona Singh.
+rCLAMPS is software implementing a computational framework described in the manuscript:  "Learning probabilistic protein-DNA recognition codes from DNA-binding specificities using structural mappings" by Joshua Wetzel, Kaiqian Zhang, and Mona Singh.
 
-The rCLAMPS framework implements a Gibbs sampling approach to examine protein-DNA interaction data (in the form of paired position-specific weight matrices (PWMs) and corresponding protein sequences) for a DNA-binding family of proteins, along with aggregated structural information for that protein family.  It simultaneously infers an interpretable predictive model of the protein family's amino acid-to-base interaction preferences (recognition code) as well as a set of corresponding protein-DNA interfaces relative to a canonical amino acid-to-base position "contact map" for the protein faimily.  We have tested the software on the homoedomain proteins and a subset of the C2H2-ZFs for which it is known in advance which domains with the C2H2-ZF protein contact DNA.
+Specifically, rCLAMPS (Recognition Code Learning via Automated Mapping of Structural interfaces) implements a Gibbs sampling approach to examine large-scale collections of position-specific weight matrices (PWMs) for transcription factors (TFs) of a given TF family in order to probabilistically infer:  1) A mapping of positions within each PWM to base positions within a canonical structural TF-DNA binding interface for the TF family, and 2) A TF family-wide "recognition code" relating amino acids occupying key base-contacting positions within the TFs to their preferrences for different bases occupying the binding site positions they contact.  So far, we have tested our software on the homoedomain TF family broadly, and also on a subset of Cys2-His2 zinc finger (C2H2-ZF) TFs for which it is known in advance which C2H2-ZF domains are contacting the binding sites represented within their PWMs.
 
-If you are interested in making predictions for novel homoedomain proteins, we provide an example for using the homeomdomain recognition code inferred by rCLAMPS in the file ./code/examplePredictions.py.  All that is required for doing so is that you set the global variable FASTA_INPUT_FILE to point to a fasta file wherein each entry is a protein sequence containing a single homeodomain instance (see, e.g.,  ./examplePredictions/predictionExamples.fa) and you set OUTPUT_DIR to point to a desired output directory path.  Note that examplePredictions.py requires that each protein sequence in this fasta file have a unique name, and that each entry contains a single homeodomain instance with all base-contacting HMM match states present.  For each protein in the fasta file that meets these criteria, a predicted PWM in tabular format will be written into a file called OUTPUT_DIR/predicted_pwms.txt.  If you have weblogo installed (see http://weblogo.threeplusone.com/manual.html#download), then you can set MAKE_LOGOS = True and each predicted logo will also be visualized and saved into OUTPUT_DIR/predicted_logos/.
+### Using rCLAMPS to predict specificites for novel (or altered versions of) TFs:
 
-For a list of requirements to run rCLAMPS and/or examplePredictions.py, please see requirements.txt. If yu wish to reproduce models examined in the manuscript, please see modelReproductions.txt.  A short script reproducing analysis plots reported in our main manuscript are located in ./code/analysis_manuscript.R. and abalysis_manuscript_zf-C2H2.R The in-code documentation there describes which additional code files were run to produce inputs the tables analysed in that script.
+We provide a template for how to do so in the the file **./code/predictionExample.py**.
 
-If you wish to run the rCLAMPS framework itself to infer new recogntion codes or train with different datasets, the main file of interest is ./code/gibbsAlign_GLM.py - it provides the following input/output functionalities:
+#### For homeodomains:
+1. Set **DOMAIN_TYPE = 'homeodomain'** in the file **predictionExamples_helpers.py**
+2. Set PROTEIN_FILE to point to a fasta file wherein each entry is a protein sequence has a unique identifier and contains a single homeodomain (see, e.g.,  ./examplePredictions/homeodomain/predictionExamples.fa)
+3. Set OUTPUT_DIR to point to a desired output directory path
 
-Input types:
-1.  A protein-DNA interface contact map for the protein family of interest - I.e., positions within the DNA-binding domain that canoncially interact with DNA bases, along with the corresponding DNA position indices that they tend to interact with (according to a canonical numbering scheme, based on the underlying multiple structural alignment).  See ./precomputedInputs/homeodomain_contactMap.txt for an example.
-2.  A set of protein-DNA binding specificities as PWMs, along with their corresponding protein sequences as a fasta file.  See ./precomputedInputs/pwmTab_homeodomains_all.txt and ./precomputedInputs/proteins_homeodomains_hasPWM.fa for examples. 
+#### For C2H2-ZFs:
+*Since C2H2-ZF TFs bind DNA via arrays of closely linked C2H2-ZF domains (see manuscript for details on the C2H2-ZF-DNA interface), we use a more precise input format than for the homeodomains.  We recommend precomputing this input format using HMMer v.2.3.2, as we find that it more accurately detects these short C2H2-ZFs domains than more recent HMMer versions.*
+1. Set **DOMAIN_TYPE = 'zf-C2H2'** in the file **predictionExamples_helpers.py**
+2. Set **PROTEIN_FILE** to point to a two column file containing, for each C2H2-ZF protein, the base-contacting residues of a linked array of C2H2-ZF domains.  Specifically, the first column of each line gives a unique protein identifier, and for each consecutive line for the same identifier, the second column gives the base-contacting residues of a C2H2-ZF domain within the linked array, in N-to-C terminal order (see, e.g.,  **./examplePredictions/zf-C2H2/predictionExamples.fa**).  These base-contacting residues correspond to positions -1, 2, 3, and 6 of the C2H2-ZF alpha-helix using the standard structural numbering scheme.  The code in **./cis_bp/C2H2-ZF/findDomains.py** and associated scripts demonstrate how we use the output of HMMer v2.3.2 to find these positions, and makes additional checks.
+3. Set **OUTPUT_DIR** to point to a desired output directory path
+
+For each protein in **PROTEIN_FILE**, a predicted PWM in tabular format will be written into **OUTPUT_DIR/predicted_pwms.txt**.  If you have weblogo installed (see http://weblogo.threeplusone.com/manual.html#download), then you can set **MAKE_LOGOS = True** and each predicted logo will also be visualized and saved into **OUTPUT_DIR/predicted_logos/**.
+
+### Exploring coefficients of the homeodomain and zf-C2H2 models
+Coefficients of the models learned by rCLAMPS' recognition code models for the two TF families explored in the manuscript can be viewed visually via text files and visually in the **./coefficientExplore/** directory.  These coeffients correspond to expected relative changes in the the log-odds of observing a particular base in a particular binding site positon given the observation of a particular amino acid in a particular protein position that contatcs that base position.  For a few illustrative examples of the intepretations of these coefficients, we can look at **./coefficientExplore/zf-C2H2/coef_plots/coef_b2a3.pdf**:  Here, we see that histidine (H) in alpha-helix position a3 more than doubles the log-odds of guanine in base position 2 (darkest red spot), relative to baseline.  Similarly, asparagine (N) in this same position increases the log-odds of observing adenine in base position 2 by about 1.5 above baseline, while decreasing log-odds of observing guanine.  Both of these examples reflect well-known favorable amino acid sidechain-to-base interactions for position b2 of the C2H2-ZF domain-DNA interface.  *Note that here in both cases, the baseline reflects the log-odds of observing the same base given tyrosine (Y), chosen arbitrarily as a reference log-odds, in the same base-contacting position.*
+
+### Requirements
+For a list of requirements to run rCLAMPS and/or **examplePredictions.py**, please see **requirements.txt**. If you wish to reproduce models examined in the manuscript, please see **modelReproductions.txt**.  
+
+### Reproducing manuscript results
+Additionally short script reproducing the main analysis plots reported in our main manuscript are located in **./code/analysis_manuscript.R**. and **analysis_manuscript_zf-C2H2.R**.  The in-code documentation there describes which additional code files were run to produce inputs the tables analysed in these scripts.
+
+### Training your own recognition codes with rCLAMPS
+If you wish to run the rCLAMPS framework itself to infer new recogntion codes or train with different datasets, the main file of interest is **./code/gibbsAlign_GLM.py** - it provides the following I/O functionalities:
+
+#### Inputs:
+1.  A protein-DNA interface contact map for the protein family of interest - I.e., positions within the DNA-binding domain that canonically interact with DNA bases, along with the corresponding DNA position indices that they tend to interact with (according to a canonical numbering scheme, based on the underlying multiple structural alignment).  See **./precomputedInputs/homeodomain_contactMap.txt** for an example.
+2.  A set of protein-DNA binding specificities as PWMs, along with their corresponding protein sequences as a fasta file.  See **./precomputedInputs/pwmTab_homeodomains_all.txt** and **./precomputedInputs/proteins_homeodomains_hasPWM.fa** for examples. 
  
-./code/gibbsAlign_GLM.py outputs a pickle file containing a dictionary of Python list objects (each index in the list corresponds to one of K Gibbs sampling chains), keyed as follows, along with a set of predicted motifs based on the optimal 'final_model' object (see below):
+
+#### Outputs:
+*The code in* **gibbsAlign_GLM.py** *outputs a pickle file containing a dictionary of Python list objects (each index in the list corresponds to one of K Gibbs sampling chains).  Each list contains:*
 1.  'final_model':  A dictionary of scikit-learn LogisticRegression objects with multiclass='multinomial', one for each base position in the contact map, keyed by the base position.  Auxilliary functions needed to transform protein sequence inputs into the proper input format for the models and to make specificity predicitons for novel proteins are included in gibbsAlign_GLM.py.
 2.  'll':  The log likelihood of the final model.
 3.  'start':  A dictionary of start positions, keyed by the PWM name, of the protein-DNA interaction interface inferred by while estimating the final_model, assuing the PWMs are oriented in the direction given by 'rev'.
 4.  'rev':  A dictionary of boolean values, keyed by the PWM name, of the PWM orientations inferred by while estimating the final_model.  0 is the original orientation, 1 is the reverse complement orientation.
 
-For example, to extract the set of optimal models, starts, and orientations from the pickle file, one would use: 
+For example, to extract the optimal model, starts, and orientations from the pickle file, one would use: 
 
 ```
 with open(filename) as f:
  res = pickle.load(f)
-score = [x['ll'] for x in res]
-opt = np.argmax(score)
-start = [x['start'] for x in res][opt]
-rev = [x['rev'] for x in res][opt]
-opt_models = [x['final_model'] for x in res][opt]
+score = [x['ll'] for x in res]   # Find the model/mapping with optimal likelihood
+opt = np.argmax(score)           
+start = [x['start'] for x in res][opt]  # Extract the set of PWM starting positions corresponding to this
+rev = [x['rev'] for x in res][opt]      # Extract the set of PWM orientations corresponding to this
+opt_models = [x['final_model'] for x in res][opt]  # Extract the optimal model object itself
 ```
 
-This code is feely available for reuse and modification.  Please refer any questions about the software to jlwetzel@princeton.edu and/or mona@cs.princeton.edu.
+#### Reuse and contact info
+This code is feely available for reuse and modification, though we request that if you use it please reference the corresponsing manuscript.  Please refer any questions regarding the framework or software to jlwetzel@princeton.edu and/or mona@cs.princeton.edu.

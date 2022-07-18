@@ -7,11 +7,11 @@ library(scales)
 rm(list = ls())
 
 DOMAIN_TYPE <- 'homeodomain'  #Set to 'homeodomain' or 'zf-C2H2'
-PLOT_TYPE <- 'coef' # set to 'coef' or 'offset'
-PLOT_DIR <- paste0('../examplePredictions/',DOMAIN_TYPE,'/',PLOT_TYPE,'_plots/')
+PLOT_TYPE <- 'coef' # set to 'coef' or 'offset'   # NOTE:  'offset' adds the intercept of the regression to each of the coeficient for that regression
+PLOT_DIR <- paste0('../coefficientExplore/',DOMAIN_TYPE,'/',PLOT_TYPE,'_plots/')
 dir.create(PLOT_DIR, showWarnings = FALSE, recursive = TRUE)
 
-x <- fread(paste0('../examplePredictions/',DOMAIN_TYPE,'/coefTable.txt'))
+x <- fread(paste0('../coefficientExplore/',DOMAIN_TYPE,'/coefTable.txt'))
 contacts.all <- x[complete.cases(x)]
 intercepts <- x[is.na(aapos)]
 intercepts$intercept <- intercepts$coef

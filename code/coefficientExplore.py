@@ -7,7 +7,7 @@
 #        to 'homeodomain' or 'zf-C2H2' prior to running
 
 from predictionExample import *
-OUTFILE = '../examplePredictions/'+DOMAIN_TYPE+'/coefTable.txt'
+OUTFILE = '../coefficientExplore/'+DOMAIN_TYPE+'/coefTable.txt'
 
 def makeCoefTable(model, edges_hmmPos, outfile):
     # Make a table of the model coefficients for exploration

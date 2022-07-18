@@ -186,21 +186,6 @@ def runHmmer232OnFasta(inFile, outFile, hmmLab, db = 'uniprot'):
     runhmmer232(outFile, hmmFile, inFile, hmmLab, descs)
     reformatOutput(outFile)
 
-def makeFakeDom4posFasta(hmmerOutFile, fastaFile, colNum):
-    # Reads the hmmerOutFile colNum, subsets to the unique
-    # entries in this column and writes them to fasta format.
-
-    fin = open(hmmerOutFile, 'r')
-    fin.readline() # skip the header
-    seqs = set([x.strip().split('\t')[colNum] for x in fin])
-    fin.close()
-    fout = open(fastaFile, 'w')
-    for i, seq in enumerate(sorted(list(seqs))):
-        fudge = 'YKCHDCGKSFK'+seq[0]+'K'+seq[1:3]+ \
-            'LR'+seq[3]+'HIRTH'
-        fout.write('>seq%s\n%s\n' %(seq,fudge))
-    fout.close()
-
 def make4posTxt(hmmerOutFile, txtFile, colNum):
     # Reads the hmmerOutFile colNum, subsets to the unique
     # entries in this column them to a plain text file
