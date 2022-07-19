@@ -61,7 +61,7 @@ start = [x['start'] for x in res][opt]  # Extract the PWM starting positions for
 rev = [x['rev'] for x in res][opt]      # Extract the PWM orientations for the optimal mapping
 ```
 
-Given the above information the optimal model can be retrained quickly, using the same logic shown in the **createFinalModel** function of **examplePredictions.py**.
+Given the above information along with the input data, the optimal model can be retrained quickly by following the logic used in the **createFinalModel** function of **examplePredictions.py**.
 
 #### Reuse and contact info
 This code is feely available for reuse and modification, though we request that if you use it please reference the corresponsing manuscript.  Please refer any questions regarding the framework or software to jlwetzel@princeton.edu and/or mona@cs.princeton.edu.
