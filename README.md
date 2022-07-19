@@ -47,7 +47,7 @@ If you wish to run the rCLAMPS framework itself to infer new recogntion codes or
 #### Outputs:
 *The code in* **gibbsAlign_GLM.py** *outputs a pickle file containing a dictionary of Python list objects (each index in the list corresponds to one of the K Gibbs sampling chains).  Each list contains:*
 1.  'll':  The log likelihood of the optimal model/mapping from that chain
-2.  'rev':  A dictionary, keyed by protein name, indicating the orientation of that protein's PWM relative to the protein-DNA interface contact map.  0 is the original orientation, 1 is the reverse complement orientation.
+2.  'rev':  A dictionary, keyed by protein name, indicating the inferred orientation of that protein's PWM relative to the protein-DNA interface contact map.  0 is the original orientation, 1 is the reverse complement orientation.
 3.  'start':  A dictionary, keyed by protein name, indicating the position within that protein's PWM inferred to correspond to the first binding site position of the protein-DNA interface contact map.
 
 For example, to extract the optimal model, starts, and orientations from the pickle file, one would use: 
