@@ -45,23 +45,23 @@ If you wish to run the rCLAMPS framework itself to infer new recogntion codes or
  
 
 #### Outputs:
-*The code in* **gibbsAlign_GLM.py** *outputs a pickle file containing a dictionary of Python list objects (each index in the list corresponds to one of K Gibbs sampling chains).  Each list contains:*
-1.  'final_model':  A dictionary of scikit-learn LogisticRegression objects with multiclass='multinomial', one for each base position in the contact map, keyed by the base position.
-2.  'll':  The log likelihood of the final model.
-3.  'start':  A dictionary of start positions, keyed by the PWM name, of the protein-DNA interaction interface inferred by while estimating the final_model, assuing the PWMs are oriented in the direction given by 'rev'.
-4.  'rev':  A dictionary of boolean values, keyed by the PWM name, of the PWM orientations inferred by while estimating the final_model.  0 is the original orientation, 1 is the reverse complement orientation.
+*The code in* **gibbsAlign_GLM.py** *outputs a pickle file containing a dictionary of Python list objects (each index in the list corresponds to one of the K Gibbs sampling chains).  Each list contains:*
+1.  'll':  The log likelihood of the optimal model/mapping from that chain
+2.  'rev':  A dictionary, keyed by protein name, indicating the orientation of the PWM relative to the protein-DNA interface contact map.  0 is the original orientation, 1 is the reverse complement orientation.
+3.  'start':  A dictionary, keyed by protein name, indicating the position within that protein's PWM inferred to correspond to the first binding site position of the protein-DNA interface contact map.
 
 For example, to extract the optimal model, starts, and orientations from the pickle file, one would use: 
 
 ```
 with open(filename) as f:
  res = pickle.load(f)
-score = [x['ll'] for x in res]   # Find the model/mapping with optimal likelihood
+score = [x['ll'] for x in res]          # Find the index of the chain with the optimal model/mapping
 opt = np.argmax(score)           
-start = [x['start'] for x in res][opt]  # Extract the set of PWM starting positions corresponding to this
-rev = [x['rev'] for x in res][opt]      # Extract the set of PWM orientations corresponding to this
-opt_models = [x['final_model'] for x in res][opt]  # Extract the optimal model object itself
+start = [x['start'] for x in res][opt]  # Extract the PWM starting positions for the optimal mapping
+rev = [x['rev'] for x in res][opt]      # Extract the PWM orientations for the optimal mapping
 ```
+
+Given the above information the optimal model can be retrained quickly, using the same logic shown in the **createFinalModel** function of **examplePredictions.py**.
 
 #### Reuse and contact info
 This code is feely available for reuse and modification, though we request that if you use it please reference the corresponsing manuscript.  Please refer any questions regarding the framework or software to jlwetzel@princeton.edu and/or mona@cs.princeton.edu.
